@@ -26,6 +26,7 @@ final class StreakManager {
     private var lastQualifiedDate: String = ""
 
     private let defaults = UserDefaults.standard
+    private let syncService = UserDataSyncService.shared
     private static let dailyKey = "streak.dailyRecords"
     private static let currentKey = "streak.current"
     private static let longestKey = "streak.longest"
@@ -154,6 +155,27 @@ final class StreakManager {
             checkMilestones()
         }
         save()
+        syncTodayProgress(date: today, completed: completed, total: totalTasks)
+    }
+
+    private func syncTodayProgress(date: String, completed: Int, total: Int) {
+        let completedTaskIds = todayCompletedIDs.map(\.uuidString).sorted()
+        let request = DailyProgressUpsertRequest(
+            date: date,
+            completed: completed,
+            total: total,
+            completedTaskIds: completedTaskIds
+        )
+
+        Task {
+            do {
+                _ = try await syncService.syncDailyProgress(request)
+            } catch {
+#if DEBUG
+                print("syncDailyProgress failed: \(error.localizedDescription)")
+#endif
+            }
+        }
     }
 
     private func checkMilestones() {

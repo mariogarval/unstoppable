@@ -44,8 +44,20 @@ struct APIEnvironment {
     }
 
     static var defaultAuthMode: APIAuthMode {
-        if infoBool(forKey: "API_USE_DEV_AUTH", defaultValue: false) {
-            return .devUserID(infoString(forKey: "API_DEV_USER_ID") ?? "dev-user-001")
+        #if DEBUG
+        let defaultUseDevAuth = true
+        let defaultDevUserID = "dev-user-001"
+        #else
+        let defaultUseDevAuth = false
+        let defaultDevUserID = ""
+        #endif
+
+        if infoBool(forKey: "API_USE_DEV_AUTH", defaultValue: defaultUseDevAuth) {
+            let configuredID = infoString(forKey: "API_DEV_USER_ID")?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let configuredID, !configuredID.isEmpty {
+                return .devUserID(configuredID)
+            }
+            return .devUserID(defaultDevUserID)
         }
         return .none
     }
