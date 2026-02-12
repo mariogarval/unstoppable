@@ -28,29 +28,33 @@ Why this stack:
 - `GET /v1/bootstrap`
   - Cloud Run handler reads profile + routine + latest streak/progress docs and returns one payload.
 
-## Practical Implementation Plan in This Codebase
+## Current Backend Deployment
 
-1. Create a small API layer:
+- GCP project: `unstoppable-app-dev`
+- Cloud Run service: `unstoppable-api`
+- Base URL: `https://unstoppable-api-qri3urt3ha-uc.a.run.app`
+- Firestore: Native mode in `us-central1`
+
+## App Integration Plan (Start Using Endpoints Now)
+
+1. Add app networking layer (new files):
    - `Unstoppable/Networking/APIClient.swift`
-   - `Unstoppable/Networking/Models/*.swift`
-2. Add a sync coordinator:
+   - `Unstoppable/Networking/Models.swift`
    - `Unstoppable/Sync/UserDataSyncService.swift`
-3. Inject service where mutations happen:
-   - onboarding views + `HomeView` + `StreakManager`
-4. Keep local updates immediate, sync async:
-   - update UI/local state first
-   - fire network request after (retry on failure)
-5. Add a bootstrap on app launch:
-   - in `UnstoppableApp` or `WelcomeView` on appear, fetch `/v1/bootstrap` and hydrate local stores.
-6. Add auth token plumbing:
-   - attach Firebase/Auth ID token as `Authorization: Bearer <token>` in `APIClient`.
-7. Deploy v1 backend on Google Cloud:
-   - create Firestore database
-   - deploy Cloud Run service with the 4 endpoints
-   - configure CORS/auth validation if needed
-8. Add reliability guardrails:
-   - queue failed writes locally and retry with exponential backoff
-   - make `POST /v1/progress/daily` idempotent per `(userId, date)`
+2. Configure endpoint base URL in app:
+   - store base URL in a single config constant (do not hardcode across views).
+3. Wire `POST /v1/progress/daily` first:
+   - call from `StreakManager.updateToday(totalTasks:)` after local state is updated.
+4. Wire `GET /v1/bootstrap` at launch:
+   - call in `UnstoppableApp`/`WelcomeView` on startup and hydrate local app state before user starts routine flow.
+5. Wire routine sync:
+   - call `PUT /v1/routines/current` from `HomeView` when template is applied, task is added/deleted, or routine time is changed.
+6. Wire profile/onboarding sync:
+   - call `POST /v1/user/profile` from onboarding transitions (nickname/age/gender/notifications/terms).
+7. Keep app responsive:
+   - local state updates first, network sync in background, queue/retry on failures.
+8. Move from dev auth to production auth:
+   - replace `X-User-Id` dev header flow with `Authorization: Bearer <Firebase ID token>`.
 
 ## Suggested Rollout Order (Google Cloud)
 
@@ -64,3 +68,10 @@ Why this stack:
 If you only do one change first, start in `StreakManager.updateToday(totalTasks:)`.
 
 Reason: nearly all meaningful user progress converges there, so one endpoint call from that method can capture daily completion + streak behavior without rewriting all views first.
+
+## Endpoint Call Map (App -> Backend)
+
+- `StreakManager.updateToday(totalTasks:)` -> `POST /v1/progress/daily`
+- App startup (`UnstoppableApp` or `WelcomeView.onAppear`) -> `GET /v1/bootstrap`
+- `HomeView` task/routine mutations -> `PUT /v1/routines/current`
+- Onboarding completion points -> `POST /v1/user/profile`
