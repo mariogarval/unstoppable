@@ -6,7 +6,7 @@ This project is a SwiftUI iOS app with local-first state and background sync to 
 
 - GCP project: `unstoppable-app-dev`
 - API service: `unstoppable-api` (Cloud Run, Python/Flask)
-- Base URL (dev): `https://unstoppable-api-qri3urt3ha-uc.a.run.app`
+- Base URL (dev): `https://unstoppable-api-1094359674860.us-central1.run.app`
 - Database: Firestore (Native mode, `us-central1`)
 
 ## App Flow and Endpoint Calls
@@ -35,6 +35,7 @@ Connected endpoint calls in the app:
     - `Unstoppable/onboarding/GenderSelectionView.swift`
     - `Unstoppable/onboarding/NotificationPermissionView.swift`
     - `Unstoppable/onboarding/TermsSheetView.swift`
+    - `Unstoppable/onboarding/PaywallView.swift` (records selected payment option)
 - `PUT /v1/routines/current`
   - Called from `Unstoppable/HomeView.swift` (`syncRoutineSnapshot`) after routine mutations:
     - template apply
@@ -84,7 +85,10 @@ Sync behavior:
 ## Backend Endpoint Contract (Current)
 
 - `POST /v1/user/profile`
-  - Accepts partial profile fields: `nickname`, `ageGroup`, `gender`, `notificationsEnabled`, `termsAccepted`.
+  - Accepts partial profile fields:
+    - `nickname`, `ageGroup`, `gender`, `notificationsEnabled`
+    - `termsAccepted`, `termsOver16Accepted`, `termsMarketingAccepted`
+    - `paymentOption` (`annual`, `monthly`, `skip`, `dismiss`)
 - `PUT /v1/routines/current`
   - Accepts `routineTime` (`HH:mm`) and full task snapshot.
 - `POST /v1/progress/daily`

@@ -6,7 +6,7 @@ Repository: `/Users/luisgalvez/Projects/unstoppable`
 
 ## Session Work Summary
 
-This session established the backend foundation on Google Cloud for the Unstoppable app: project initialization, billing linkage, Firestore creation, Python Cloud Run API scaffolding, deployment, and live endpoint smoke tests for the v1 routes.
+This session established the backend foundation on Google Cloud for the Unstoppable app, then extended profile sync behavior and redeployed Cloud Run. Work included project initialization, Firestore setup, Python API scaffolding, endpoint smoke tests, profile schema expansion, and rollout of a new live revision.
 
 ## Change Summary
 
@@ -27,3 +27,12 @@ Summary: Deployed `unstoppable-api` to project `unstoppable-app-dev`, then teste
 
 6. Provisioned Firestore database.
 Summary: Created Firestore Native database in `us-central1` for `unstoppable-app-dev` after confirming `us-central` was invalid for Firestore location.
+
+7. Expanded backend profile allowlist for onboarding metadata.
+Summary: Updated `/Users/luisgalvez/Projects/unstoppable/backend/api/src/app.py` so `POST /v1/user/profile` accepts `termsOver16Accepted`, `termsMarketingAccepted`, and `paymentOption`.
+
+8. Redeployed Cloud Run with updated backend code.
+Summary: Ran `ALLOW_UNAUTHENTICATED=1 ALLOW_DEV_USER_HEADER=1 backend/api/deploy_cloud_run.sh unstoppable-app-dev`, resulting in revision `unstoppable-api-00002-m25` serving 100% traffic.
+
+9. Captured new active service URL after redeploy.
+Summary: Deployment returned `https://unstoppable-api-1094359674860.us-central1.run.app`, which was then used to realign app-side dev endpoint configuration.
