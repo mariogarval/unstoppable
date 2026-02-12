@@ -12,6 +12,29 @@ struct UserProfileUpsertRequest: Codable, Sendable {
     let gender: String?
     let notificationsEnabled: Bool?
     let termsAccepted: Bool?
+    let termsOver16Accepted: Bool?
+    let termsMarketingAccepted: Bool?
+    let paymentOption: String?
+
+    init(
+        nickname: String? = nil,
+        ageGroup: String? = nil,
+        gender: String? = nil,
+        notificationsEnabled: Bool? = nil,
+        termsAccepted: Bool? = nil,
+        termsOver16Accepted: Bool? = nil,
+        termsMarketingAccepted: Bool? = nil,
+        paymentOption: String? = nil
+    ) {
+        self.nickname = nickname
+        self.ageGroup = ageGroup
+        self.gender = gender
+        self.notificationsEnabled = notificationsEnabled
+        self.termsAccepted = termsAccepted
+        self.termsOver16Accepted = termsOver16Accepted
+        self.termsMarketingAccepted = termsMarketingAccepted
+        self.paymentOption = paymentOption
+    }
 }
 
 struct RoutineTaskPayload: Codable, Sendable {

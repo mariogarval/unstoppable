@@ -141,11 +141,9 @@ struct TermsSheetView: View {
             do {
                 _ = try await syncService.syncUserProfile(
                     UserProfileUpsertRequest(
-                        nickname: nil,
-                        ageGroup: nil,
-                        gender: nil,
-                        notificationsEnabled: nil,
-                        termsAccepted: true
+                        termsAccepted: canProceed,
+                        termsOver16Accepted: isOver16,
+                        termsMarketingAccepted: agreeMarketing
                     )
                 )
             } catch {

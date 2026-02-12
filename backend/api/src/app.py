@@ -90,6 +90,9 @@ def upsert_user_profile() -> tuple[Any, int]:
         "gender",
         "notificationsEnabled",
         "termsAccepted",
+        "termsOver16Accepted",
+        "termsMarketingAccepted",
+        "paymentOption",
     }
     profile_data = {k: payload[k] for k in allowed_fields if k in payload}
     profile_data["updatedAt"] = firestore.SERVER_TIMESTAMP

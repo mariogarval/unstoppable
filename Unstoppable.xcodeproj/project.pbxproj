@@ -368,7 +368,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_API_BASE_URL = "https://unstoppable-api-qri3urt3ha-uc.a.run.app";
+				INFOPLIST_KEY_API_BASE_URL = "https://unstoppable-api-1094359674860.us-central1.run.app";
 				INFOPLIST_KEY_API_DEV_USER_ID = "dev-user-001";
 				INFOPLIST_KEY_API_USE_DEV_AUTH = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

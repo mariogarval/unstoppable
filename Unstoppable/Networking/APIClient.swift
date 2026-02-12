@@ -33,7 +33,7 @@ enum APIClientError: LocalizedError {
 }
 
 struct APIEnvironment {
-    private static let fallbackBaseURLString = "https://unstoppable-api-qri3urt3ha-uc.a.run.app"
+    private static let fallbackBaseURLString = "https://unstoppable-api-1094359674860.us-central1.run.app"
 
     static var baseURL: URL {
         let configured = infoString(forKey: "API_BASE_URL")

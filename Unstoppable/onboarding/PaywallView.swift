@@ -3,8 +3,9 @@ import SwiftUI
 struct PaywallView: View {
     @State private var selectedPlan: Plan = .annual
     @State private var navigateHome = false
+    private let syncService = UserDataSyncService.shared
 
-    enum Plan { case annual, monthly }
+    enum Plan: String { case annual, monthly }
 
     private var trialEndDate: String {
         let date = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
@@ -109,7 +110,7 @@ struct PaywallView: View {
 
                 // CTA
                 Button {
-                    navigateHome = true
+                    completePaywallSelection(selectedPlan.rawValue)
                 } label: {
                     Label {
                         Text(selectedPlan == .annual ? "Start Now. 7 Days Free." : "Subscribe. No Excuses.")
@@ -130,7 +131,7 @@ struct PaywallView: View {
                 .accessibilityHint("Starts a 7‑day free trial, then auto‑renews unless canceled.")
 
                 Button {
-                    navigateHome = true
+                    completePaywallSelection("skip")
                 } label: {
                     Text("Stay limited. Your call.")
                         .font(.callout)
@@ -149,11 +150,28 @@ struct PaywallView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                DismissButton(navigateHome: $navigateHome)
+                DismissButton {
+                    completePaywallSelection("dismiss")
+                }
             }
         }
         .navigationDestination(isPresented: $navigateHome) {
             HomeView()
+        }
+    }
+
+    private func completePaywallSelection(_ option: String) {
+        navigateHome = true
+        Task {
+            do {
+                _ = try await syncService.syncUserProfile(
+                    UserProfileUpsertRequest(paymentOption: option)
+                )
+            } catch {
+#if DEBUG
+                print("syncUserProfile(paymentOption) failed: \(error.localizedDescription)")
+#endif
+            }
         }
     }
 }
@@ -161,10 +179,10 @@ struct PaywallView: View {
 // MARK: - Dismiss button
 
 private struct DismissButton: View {
-    @Binding var navigateHome: Bool
+    let onTap: () -> Void
 
     var body: some View {
-        Button { navigateHome = true } label: {
+        Button(action: onTap) {
             Image(systemName: "xmark")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.secondary)
