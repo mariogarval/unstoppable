@@ -8,6 +8,9 @@ struct WelcomeView: View {
     @State private var appleAppeared = false
     @State private var googleAppeared = false
     @State private var guestAppeared = false
+    @State private var didBootstrap = false
+
+    private let syncService = UserDataSyncService.shared
 
     var body: some View {
         NavigationStack {
@@ -165,10 +168,26 @@ struct WelcomeView: View {
                     }
                     actionsAppeared = true
                 }
+                .task {
+                    await bootstrapIfNeeded()
+                }
                 .dynamicTypeSize(.medium ... .accessibility5)
                 .navigationTitle("")
                 .toolbar(.hidden, for: .navigationBar)
             }
+        }
+    }
+
+    @MainActor
+    private func bootstrapIfNeeded() async {
+        guard !didBootstrap else { return }
+        didBootstrap = true
+        do {
+            _ = try await syncService.fetchBootstrap()
+        } catch {
+#if DEBUG
+            print("bootstrap failed: \(error.localizedDescription)")
+#endif
         }
     }
 }
