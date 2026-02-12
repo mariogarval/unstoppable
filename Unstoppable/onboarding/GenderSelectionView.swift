@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GenderSelectionView: View {
     @State private var navigateNext = false
+    private let syncService = UserDataSyncService.shared
 
     private let genders: [(label: String, icon: String)] = [
         ("Female", "figure.stand.dress"),
@@ -29,6 +30,7 @@ struct GenderSelectionView: View {
             VStack(spacing: 10) {
                 ForEach(genders, id: \.label) { gender in
                     Button {
+                        syncGender(gender.label)
                         navigateNext = true
                     } label: {
                         HStack(spacing: 14) {
@@ -77,6 +79,26 @@ struct GenderSelectionView: View {
         }
         .navigationDestination(isPresented: $navigateNext) {
             NotificationPermissionView()
+        }
+    }
+
+    private func syncGender(_ gender: String) {
+        Task {
+            do {
+                _ = try await syncService.syncUserProfile(
+                    UserProfileUpsertRequest(
+                        nickname: nil,
+                        ageGroup: nil,
+                        gender: gender,
+                        notificationsEnabled: nil,
+                        termsAccepted: nil
+                    )
+                )
+            } catch {
+#if DEBUG
+                print("syncUserProfile(gender) failed: \(error.localizedDescription)")
+#endif
+            }
         }
     }
 }

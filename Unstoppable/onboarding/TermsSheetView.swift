@@ -3,6 +3,7 @@ import SwiftUI
 struct TermsSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var didAccept: Bool
+    private let syncService = UserDataSyncService.shared
 
     @State private var agreeAll = false
     @State private var isOver16 = false
@@ -109,6 +110,7 @@ struct TermsSheetView: View {
             Spacer()
 
             Button {
+                syncTermsAccepted()
                 didAccept = true
                 dismiss()
             } label: {
@@ -132,6 +134,24 @@ struct TermsSheetView: View {
 
     private func syncAgreeAll() {
         agreeAll = isOver16 && agreeMarketing
+    }
+
+    private func syncTermsAccepted() {
+        Task {
+            do {
+                _ = try await syncService.syncUserProfile(
+                    UserProfileUpsertRequest(
+                        termsAccepted: canProceed,
+                        termsOver16Accepted: isOver16,
+                        termsMarketingAccepted: agreeMarketing
+                    )
+                )
+            } catch {
+#if DEBUG
+                print("syncUserProfile(termsAccepted) failed: \(error.localizedDescription)")
+#endif
+            }
+        }
     }
 }
 

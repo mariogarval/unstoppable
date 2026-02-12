@@ -1,2 +1,5 @@
 .DS_Store
 .build/
+backend/api/.venv/
+backend/api/__pycache__/
+backend/api/**/*.pyc

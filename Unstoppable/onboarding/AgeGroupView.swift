@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AgeGroupView: View {
     @State private var navigateNext = false
+    private let syncService = UserDataSyncService.shared
 
     private let ageRanges = [
         "20 ~ 24",
@@ -33,6 +34,7 @@ struct AgeGroupView: View {
                 VStack(spacing: 10) {
                     ForEach(ageRanges, id: \.self) { range in
                         Button {
+                            syncAgeGroup(range)
                             navigateNext = true
                         } label: {
                             HStack {
@@ -78,6 +80,26 @@ struct AgeGroupView: View {
         }
         .navigationDestination(isPresented: $navigateNext) {
             GenderSelectionView()
+        }
+    }
+
+    private func syncAgeGroup(_ ageGroup: String) {
+        Task {
+            do {
+                _ = try await syncService.syncUserProfile(
+                    UserProfileUpsertRequest(
+                        nickname: nil,
+                        ageGroup: ageGroup,
+                        gender: nil,
+                        notificationsEnabled: nil,
+                        termsAccepted: nil
+                    )
+                )
+            } catch {
+#if DEBUG
+                print("syncUserProfile(ageGroup) failed: \(error.localizedDescription)")
+#endif
+            }
         }
     }
 }

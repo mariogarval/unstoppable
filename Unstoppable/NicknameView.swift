@@ -3,7 +3,10 @@ import SwiftUI
 struct NicknameView: View {
     @State private var nickname = ""
     @State private var appeared = false
+    @State private var navigateNext = false
     @FocusState private var isFocused: Bool
+
+    private let syncService = UserDataSyncService.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -63,8 +66,8 @@ struct NicknameView: View {
             Spacer()
 
             // Next button
-            NavigationLink {
-                AgeGroupView()
+            Button {
+                continueToAgeGroup()
             } label: {
                 Text("Next")
                     .font(.body.weight(.semibold))
@@ -79,6 +82,33 @@ struct NicknameView: View {
         .padding(.horizontal, 20)
         .background(Color(.systemBackground))
         .onAppear { appeared = true }
+        .navigationDestination(isPresented: $navigateNext) {
+            AgeGroupView()
+        }
+    }
+
+    private func continueToAgeGroup() {
+        let trimmed = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        navigateNext = true
+        Task {
+            do {
+                _ = try await syncService.syncUserProfile(
+                    UserProfileUpsertRequest(
+                        nickname: trimmed,
+                        ageGroup: nil,
+                        gender: nil,
+                        notificationsEnabled: nil,
+                        termsAccepted: nil
+                    )
+                )
+            } catch {
+#if DEBUG
+                print("syncUserProfile(nickname) failed: \(error.localizedDescription)")
+#endif
+            }
+        }
     }
 }
 
@@ -87,4 +117,3 @@ struct NicknameView: View {
         NicknameView()
     }
 }
-

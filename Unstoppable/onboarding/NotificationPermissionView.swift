@@ -4,6 +4,7 @@ import UserNotifications
 struct NotificationPermissionView: View {
     @State private var navigateNext = false
     @State private var bellBounce = false
+    private let syncService = UserDataSyncService.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -66,6 +67,7 @@ struct NotificationPermissionView: View {
 
                 Button {
                     navigateNext = true
+                    syncNotificationsEnabled(false)
                 } label: {
                     Text("I\u{2019}ll risk it alone")
                         .font(.subheadline)
@@ -97,9 +99,30 @@ struct NotificationPermissionView: View {
     private func requestNotificationPermission() {
         UNUserNotificationCenter.current().requestAuthorization(
             options: [.alert, .badge, .sound]
-        ) { _, _ in
+        ) { granted, _ in
+            syncNotificationsEnabled(granted)
             DispatchQueue.main.async {
                 navigateNext = true
+            }
+        }
+    }
+
+    private func syncNotificationsEnabled(_ enabled: Bool) {
+        Task {
+            do {
+                _ = try await syncService.syncUserProfile(
+                    UserProfileUpsertRequest(
+                        nickname: nil,
+                        ageGroup: nil,
+                        gender: nil,
+                        notificationsEnabled: enabled,
+                        termsAccepted: nil
+                    )
+                )
+            } catch {
+#if DEBUG
+                print("syncUserProfile(notifications) failed: \(error.localizedDescription)")
+#endif
             }
         }
     }

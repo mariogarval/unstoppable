@@ -101,6 +101,7 @@ private struct HomeTab: View {
     let streakManager: StreakManager
     let settings: AppSettings
     let onTasksCountChange: (Int) -> Void
+    private let syncService = UserDataSyncService.shared
 
     private var timeString: String {
         routineTime.formatted(date: .omitted, time: .shortened)
@@ -122,7 +123,41 @@ private struct HomeTab: View {
             }
             onTasksCountChange(tasks.count)
         }
+        syncRoutineSnapshot()
     }
+
+    private func syncRoutineSnapshot() {
+        let request = RoutineUpsertRequest(
+            routineTime: Self.routineTimeFormatter.string(from: routineTime),
+            tasks: tasks.map {
+                RoutineTaskPayload(
+                    id: $0.id.uuidString,
+                    title: $0.title,
+                    icon: $0.icon,
+                    duration: $0.duration,
+                    isCompleted: $0.isCompleted
+                )
+            }
+        )
+
+        Task {
+            do {
+                _ = try await syncService.syncCurrentRoutine(request)
+            } catch {
+#if DEBUG
+                print("syncCurrentRoutine failed: \(error.localizedDescription)")
+#endif
+            }
+        }
+    }
+
+    private static let routineTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -157,6 +192,7 @@ private struct HomeTab: View {
                                                 } else {
                                                     streakManager.uncompleteTask(taskID: task.id, totalTasks: tasks.count)
                                                 }
+                                                syncRoutineSnapshot()
                                             },
                                             onDelete: {
                                         if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
@@ -164,6 +200,7 @@ private struct HomeTab: View {
                                                 tasks.remove(at: idx)
                                                 onTasksCountChange(tasks.count)
                                             }
+                                            syncRoutineSnapshot()
                                         }
                                     })
                                     if task.id != tasks.last?.id {
@@ -253,12 +290,14 @@ private struct HomeTab: View {
                     tasks.append(newTask)
                     onTasksCountChange(tasks.count)
                 }
+                syncRoutineSnapshot()
             }
         }
         .sheet(isPresented: $showingEditTime) {
             EditTimeSheet(time: $routineTime)
                 .onDisappear {
                     settings.routineTime = routineTime
+                    syncRoutineSnapshot()
                 }
         }
         .sheet(isPresented: $showingTemplates) {
@@ -281,6 +320,7 @@ private struct HomeTab: View {
                     completedIDs: completedIDs,
                     totalTasks: tasks.count
                 )
+                syncRoutineSnapshot()
             }
         }
         .onAppear {
@@ -289,6 +329,7 @@ private struct HomeTab: View {
                 tasks[i].isCompleted = streakManager.isCompleted(taskID: tasks[i].id)
             }
             onTasksCountChange(tasks.count)
+            syncRoutineSnapshot()
         }
     }
 }
@@ -1035,4 +1076,3 @@ private struct SettingsTab: View {
         HomeView()
     }
 }
-

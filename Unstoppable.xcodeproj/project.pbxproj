@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0A100001111111111111111 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A200001111111111111111 /* APIClient.swift */; };
+		C0A100011111111111111111 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A200011111111111111111 /* Models.swift */; };
+		C0A100021111111111111111 /* UserDataSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A200021111111111111111 /* UserDataSyncService.swift */; };
 		2B0135E12F3D3F1C007ED162 /* OnboardingUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */; };
 		A71B2E012A0B1C0000F1A2B3 /* UnstoppableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */; };
 		A71B2E032A0B1C0000F1A2B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E022A0B1C0000F1A2B3 /* ContentView.swift */; };
@@ -30,6 +33,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0A200001111111111111111 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		C0A200011111111111111111 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		C0A200021111111111111111 /* UserDataSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDataSyncService.swift; sourceTree = "<group>"; };
 		2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingUI.swift; sourceTree = "<group>"; };
 		A71B2DFD2A0B1C0000F1A2B3 /* Unstoppable.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Unstoppable.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnstoppableApp.swift; sourceTree = "<group>"; };
@@ -64,6 +70,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		C0A300001111111111111111 /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				C0A200001111111111111111 /* APIClient.swift */,
+				C0A200011111111111111111 /* Models.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+		C0A300011111111111111111 /* Sync */ = {
+			isa = PBXGroup;
+			children = (
+				C0A200021111111111111111 /* UserDataSyncService.swift */,
+			);
+			path = Sync;
+			sourceTree = "<group>";
+		};
 		2B0135DF2F3D3E84007ED162 /* onboarding */ = {
 			isa = PBXGroup;
 			children = (
@@ -107,6 +130,8 @@
 				A71B2E0F2A0B1C0200F1A2B3 /* WelcomeView.swift */,
 				A71B2E112A0B1C0300F1A2B3 /* NicknameView.swift */,
 				2B0135DF2F3D3E84007ED162 /* onboarding */,
+				C0A300001111111111111111 /* Networking */,
+				C0A300011111111111111111 /* Sync */,
 				A71B2E292A0B1C0F00F1A2B3 /* HomeView.swift */,
 				A71B2E2D2A0B1C1100F1A2B3 /* RoutineTimerView.swift */,
 				A71B2E2F2A0B1C1200F1A2B3 /* StreakManager.swift */,
@@ -184,6 +209,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0A100001111111111111111 /* APIClient.swift in Sources */,
+				C0A100011111111111111111 /* Models.swift in Sources */,
+				C0A100021111111111111111 /* UserDataSyncService.swift in Sources */,
 				A71B2E032A0B1C0000F1A2B3 /* ContentView.swift in Sources */,
 				A71B2E102A0B1C0200F1A2B3 /* WelcomeView.swift in Sources */,
 				A71B2E122A0B1C0300F1A2B3 /* NicknameView.swift in Sources */,
@@ -340,6 +368,9 @@
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_API_BASE_URL = "https://unstoppable-api-1094359674860.us-central1.run.app";
+				INFOPLIST_KEY_API_DEV_USER_ID = "dev-user-001";
+				INFOPLIST_KEY_API_USE_DEV_AUTH = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -368,6 +399,9 @@
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_API_BASE_URL = "https://api.unstoppable.app";
+				INFOPLIST_KEY_API_DEV_USER_ID = "";
+				INFOPLIST_KEY_API_USE_DEV_AUTH = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
