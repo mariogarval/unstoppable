@@ -1,87 +1,113 @@
-# Unstoppable iOS App Flow + Backend Integration Guide
+# Unstoppable iOS App + Backend Sync (Current State)
 
-This project is a SwiftUI iOS app with a local-first flow.
+This project is a SwiftUI iOS app with local-first state and background sync to a Python API on Google Cloud Run.
 
-## 1) Current App Entry and Navigation
+## Current Backend Status
 
-### Real entry point
-- `Unstoppable/UnstoppableApp.swift` launches `WelcomeView()`.
+- GCP project: `unstoppable-app-dev`
+- API service: `unstoppable-api` (Cloud Run, Python/Flask)
+- Base URL (dev): `https://unstoppable-api-qri3urt3ha-uc.a.run.app`
+- Database: Firestore (Native mode, `us-central1`)
 
-### Main path currently wired in the app
-1. `WelcomeView` (`Unstoppable/WelcomeView.swift`)
-2. `NicknameView` (`Unstoppable/NicknameView.swift`)
-3. `AgeGroupView` (`Unstoppable/onboarding/AgeGroupView.swift`)
-4. `GenderSelectionView` (`Unstoppable/onboarding/GenderSelectionView.swift`)
-5. `NotificationPermissionView` (`Unstoppable/onboarding/NotificationPermissionView.swift`)
-6. `BeforeAfterView` (`Unstoppable/onboarding/BeforeAfterView.swift`)
-7. `TermsSheetView` modal (`Unstoppable/onboarding/TermsSheetView.swift`)
-8. `PaywallView` (`Unstoppable/onboarding/PaywallView.swift`)
-9. `HomeView` (`Unstoppable/HomeView.swift`)
+## App Flow and Endpoint Calls
 
-### Inside `HomeView`
-- `TabView` with:
-  - Home tab: routine tasks and timer
-  - Stats tab: streak analytics
-  - Settings tab: theme/time/notifications/haptics
+Entry point:
+- `Unstoppable/UnstoppableApp.swift` -> `WelcomeView`
 
-### Important note
-There is a second onboarding chain (`RoutinePreviewView -> TimerDemoView -> SocialProofView -> GoalSelectionView`) that exists in code but is **not** connected from the current app entry flow.
+Primary navigation chain:
+1. `WelcomeView`
+2. `NicknameView`
+3. `AgeGroupView`
+4. `GenderSelectionView`
+5. `NotificationPermissionView`
+6. `BeforeAfterView`
+7. `TermsSheetView` (modal)
+8. `PaywallView`
+9. `HomeView`
 
-## 2) Where User Data Lives Today
+Connected endpoint calls in the app:
+- `GET /v1/bootstrap`
+  - Called once on app start from `Unstoppable/WelcomeView.swift` (`bootstrapIfNeeded`).
+- `POST /v1/user/profile`
+  - Called incrementally during onboarding:
+    - `Unstoppable/NicknameView.swift`
+    - `Unstoppable/onboarding/AgeGroupView.swift`
+    - `Unstoppable/onboarding/GenderSelectionView.swift`
+    - `Unstoppable/onboarding/NotificationPermissionView.swift`
+    - `Unstoppable/onboarding/TermsSheetView.swift`
+- `PUT /v1/routines/current`
+  - Called from `Unstoppable/HomeView.swift` (`syncRoutineSnapshot`) after routine mutations:
+    - template apply
+    - task toggle
+    - add/delete task
+    - routine time change
+    - timer completion
+    - initial appear sync
+- `POST /v1/progress/daily`
+  - Called from `Unstoppable/StreakManager.swift` (`syncTodayProgress`) whenever daily progress changes.
 
-Data is currently local only.
+## Networking Layer
 
-### Streak + completion history
-- `Unstoppable/StreakManager.swift`
-- `StreakManager` is a singleton (`StreakManager.shared`).
-- Stores:
-  - `dailyRecords` (`[dateString: DayRecord]`)
-  - `currentStreak`, `longestStreak`, `lastQualifiedDate`
-- Persists to `UserDefaults` in `save()` / `load()`.
+Core files:
+- `Unstoppable/Networking/APIClient.swift`
+- `Unstoppable/Networking/Models.swift`
+- `Unstoppable/Sync/UserDataSyncService.swift`
 
-### In-memory UI state (not persisted to backend)
-- `HomeView.swift`
-  - `tasks` in `HomeTab`
-  - `routineTime`, tab selection, sheet flags
-- `AppSettings` object in `HomeView.swift` (theme, routine time, notification toggle, haptics)
-- Onboarding choices are mostly used for navigation today and are not centrally persisted.
+`APIClient` supports:
+- `GET`, `POST`, `PUT`
+- shared JSON encode/decode
+- auth modes:
+  - `.none`
+  - `.devUserID("...")` via `X-User-Id` header
+  - `.bearerTokenProvider` via `Authorization: Bearer ...`
 
-## 3) Where to Start Adding Backend Endpoints
+Build-time config keys (in project build settings / Info.plist injection):
+- `API_BASE_URL`
+- `API_USE_DEV_AUTH`
+- `API_DEV_USER_ID`
 
-If your goal is "save user data for this flow", start with the mutation points below.
+Current defaults:
+- Debug: uses dev auth (`X-User-Id`, default `dev-user-001`) against Cloud Run dev URL.
+- Release: points to `https://api.unstoppable.app` with dev auth disabled.
 
-### A) Save profile/onboarding completion first
-- Trigger from:
-  - `NicknameView` when user taps Next
-  - `AgeGroupView` and `GenderSelectionView` when selection is made
-  - `NotificationPermissionView` after permission result
-  - `TermsSheetView` when accepted
-- Why first: this gives you a server-side user profile before task/streak events.
+## Data Model and Sync Behavior
 
-### B) Save routine/task state
-- Trigger from `HomeView.swift`:
-  - `applyTemplate(_:)`
-  - Add task action in `AddTaskSheet`
-  - Task delete action in `TaskRow` context menu
-  - Routine time change (`EditTimeSheet` -> `settings.routineTime`)
+Local state still drives UI first:
+- Streak/progress persisted locally in `UserDefaults` via `StreakManager`.
+- Routine/task UI state managed in `HomeView`.
 
-### C) Save progress + streak updates
-- Trigger from `StreakManager.swift`:
-  - `completeTask(taskID:totalTasks:)`
-  - `uncompleteTask(taskID:totalTasks:)`
-  - `recordBatchCompletion(completedIDs:totalTasks:)`
-  - `checkAppLaunch()` (useful for streak resets)
-- Best hook: call a sync API from inside `updateToday(totalTasks:)` after local state changes.
+Sync behavior:
+- API calls are fire-and-forget background `Task` calls.
+- Local writes happen first; failed sync currently logs debug messages.
+- No retry queue/offline reconciliation yet.
 
-## 4) Recommended Backend API Shape (Minimal)
-
-Use a minimal set first:
+## Backend Endpoint Contract (Current)
 
 - `POST /v1/user/profile`
-  - nickname, ageGroup, gender, notificationsEnabled, termsAccepted
+  - Accepts partial profile fields: `nickname`, `ageGroup`, `gender`, `notificationsEnabled`, `termsAccepted`.
 - `PUT /v1/routines/current`
-  - routineTime, task list (id/title/icon/duration/isCompleted)
+  - Accepts `routineTime` (`HH:mm`) and full task snapshot.
 - `POST /v1/progress/daily`
-  - date, completed, total, completedTaskIds
+  - Accepts `date` (`yyyy-MM-dd`), `completed`, `total`, `completedTaskIds`.
 - `GET /v1/bootstrap`
-  - returns profile + current routine + streak snapshot for app launch restore
+  - Returns: `userId`, `profile`, `routine`, `streak`, and `progress.today`.
+
+## Simulator Testing
+
+Launch:
+
+```bash
+./scripts/run_ios_sim.sh "iPhone 17 Pro"
+```
+
+Stream app logs:
+
+```bash
+xcrun simctl spawn booted log stream --level debug --predicate 'process == "Unstoppable"'
+```
+
+Debug failure logs to watch:
+- `bootstrap failed: ...`
+- `syncUserProfile(...) failed: ...`
+- `syncCurrentRoutine failed: ...`
+- `syncDailyProgress failed: ...`
