@@ -1,58 +1,7 @@
 import SwiftUI
-import Charts
 #if canImport(UIKit)
 import UIKit
 #endif
-
-@Observable
-final class CompletionHistory {
-    private(set) var byDay: [Date: Set<UUID>] = [:]
-
-    private func dayKey(for date: Date) -> Date {
-        Calendar.current.startOfDay(for: date)
-    }
-
-    func set(_ completed: Bool, taskID: UUID, on date: Date = Date()) {
-        let key = dayKey(for: date)
-        var set = byDay[key] ?? []
-        if completed { set.insert(taskID) } else { set.remove(taskID) }
-        byDay[key] = set
-    }
-
-    func isCompleted(taskID: UUID, on date: Date = Date()) -> Bool {
-        let key = dayKey(for: date)
-        return byDay[key]?.contains(taskID) ?? false
-    }
-
-    func completedCount(on date: Date = Date()) -> Int {
-        let key = dayKey(for: date)
-        return byDay[key]?.count ?? 0
-    }
-
-    func streak(upTo date: Date = Date()) -> Int {
-        var count = 0
-        var day = dayKey(for: date)
-        while true {
-            if let set = byDay[day], !set.isEmpty {
-                count += 1
-                if let prev = Calendar.current.date(byAdding: .day, value: -1, to: day) {
-                    day = prev
-                } else { break }
-            } else { break }
-        }
-        return count
-    }
-
-    func lastNDays(_ n: Int, endingAt date: Date = Date()) -> [(date: Date, count: Int)] {
-        var result: [(Date, Int)] = []
-        let end = dayKey(for: date)
-        for offset in stride(from: n - 1, through: 0, by: -1) {
-            let d = Calendar.current.date(byAdding: .day, value: -offset, to: end)!
-            result.append((d, completedCount(on: d)))
-        }
-        return result
-    }
-}
 
 @Observable
 final class AppSettings {
@@ -69,9 +18,12 @@ final class AppSettings {
 
 struct HomeView: View {
     @State private var selectedTab = 0
-    @State private var history = CompletionHistory()
     @State private var settings = AppSettings()
     @State private var totalTasks: Int = 5
+    @State private var showStreakBroken = false
+    @State private var showMilestone = false
+
+    private let streakManager = StreakManager.shared
 
     private var preferredScheme: ColorScheme? {
         switch settings.theme {
@@ -83,14 +35,14 @@ struct HomeView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeTab(history: history, settings: settings, onTasksCountChange: { totalTasks = $0 })
+            HomeTab(streakManager: streakManager, settings: settings, onTasksCountChange: { totalTasks = $0 })
                 .tabItem {
                     Image(systemName: "house.fill")
                     Text("Home")
                 }
                 .tag(0)
 
-            StatsTab(history: history, settings: settings, totalTasks: totalTasks)
+            StatsTab(streakManager: streakManager, totalTasks: totalTasks)
                 .tabItem {
                     Image(systemName: "chart.bar.fill")
                     Text("Stats")
@@ -107,6 +59,25 @@ struct HomeView: View {
         .tint(.orange)
         .navigationBarBackButtonHidden(true)
         .preferredColorScheme(preferredScheme)
+        .onAppear {
+            streakManager.checkAppLaunch()
+            if streakManager.streakBrokenMessage != nil {
+                showStreakBroken = true
+            }
+        }
+        .alert("Streak Lost", isPresented: $showStreakBroken) {
+            Button("Got it") { streakManager.streakBrokenMessage = nil }
+        } message: {
+            Text(streakManager.streakBrokenMessage ?? "")
+        }
+        .onChange(of: streakManager.milestoneMessage) { _, newValue in
+            if newValue != nil { showMilestone = true }
+        }
+        .alert("Milestone Reached", isPresented: $showMilestone) {
+            Button("Let\u{2019}s go") { streakManager.milestoneMessage = nil }
+        } message: {
+            Text(streakManager.milestoneMessage ?? "")
+        }
     }
 }
 
@@ -127,7 +98,7 @@ private struct HomeTab: View {
     @State private var showingTimer = false
     @State private var routineTime: Date = Date()
 
-    let history: CompletionHistory
+    let streakManager: StreakManager
     let settings: AppSettings
     let onTasksCountChange: (Int) -> Void
 
@@ -158,7 +129,7 @@ private struct HomeTab: View {
             ScrollView {
                 VStack(spacing: 0) {
                     // Streak
-                    StreakHeader(streak: history.streak(upTo: Date()))
+                    StreakHeader(streak: streakManager.getStreakCount())
                         .padding(.top, 16)
 
                     if tasks.isEmpty {
@@ -180,12 +151,17 @@ private struct HomeTab: View {
                                 ForEach($tasks) { $task in
                                     TaskRow(task: $task,
                                             hapticsEnabled: settings.hapticsEnabled,
-                                            onToggle: { completed in history.set(completed, taskID: task.id) },
+                                            onToggle: { completed in
+                                                if completed {
+                                                    streakManager.completeTask(taskID: task.id, totalTasks: tasks.count)
+                                                } else {
+                                                    streakManager.uncompleteTask(taskID: task.id, totalTasks: tasks.count)
+                                                }
+                                            },
                                             onDelete: {
                                         if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
                                             withAnimation(.easeInOut(duration: 0.2)) {
                                                 tasks.remove(at: idx)
-                                                history.set(false, taskID: task.id)
                                                 onTasksCountChange(tasks.count)
                                             }
                                         }
@@ -275,7 +251,6 @@ private struct HomeTab: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     let newTask = RoutineTask(title: trimmed, icon: icon, duration: duration)
                     tasks.append(newTask)
-                    history.set(false, taskID: newTask.id)
                     onTasksCountChange(tasks.count)
                 }
             }
@@ -300,15 +275,18 @@ private struct HomeTab: View {
                 for i in tasks.indices {
                     if completedIDs.contains(tasks[i].id) {
                         tasks[i].isCompleted = true
-                        history.set(true, taskID: tasks[i].id)
                     }
                 }
+                streakManager.recordBatchCompletion(
+                    completedIDs: completedIDs,
+                    totalTasks: tasks.count
+                )
             }
         }
         .onAppear {
             routineTime = settings.routineTime
             for i in tasks.indices {
-                tasks[i].isCompleted = history.isCompleted(taskID: tasks[i].id)
+                tasks[i].isCompleted = streakManager.isCompleted(taskID: tasks[i].id)
             }
             onTasksCountChange(tasks.count)
         }
@@ -659,73 +637,362 @@ private struct EditTimeSheet: View {
     }
 }
 
-// MARK: - Stats Tab with live stats
+// MARK: - Stats Tab
 
 private struct StatsTab: View {
-    let history: CompletionHistory
-    let settings: AppSettings
+    let streakManager: StreakManager
     let totalTasks: Int
 
+    @State private var selectedDay: Date?
+
+    private var today: Date { Date() }
+    private var completedToday: Int { streakManager.completedCount(on: today) }
+    private var streak: Int { streakManager.getStreakCount() }
+    private var longest: Int { streakManager.getLongestStreak() }
+    private var weekData: (completed: Int, elapsed: Int) {
+        streakManager.daysFullyCompletedThisWeek(totalTasks: totalTasks)
+    }
+    private var last7: [(date: Date, count: Int)] { streakManager.getWeekData() }
+
+    private var successRate: Int {
+        streakManager.successRate(totalTasks: totalTasks)
+    }
+
+    private var todaySubtitle: String {
+        if totalTasks == 0 { return "Add tasks first." }
+        if completedToday == totalTasks { return "All done. Respect." }
+        if completedToday == 0 { return "Do better." }
+        return "Not done yet."
+    }
+
+    private var streakSubtitle: String {
+        if streak == 0 { return "Start now or stay at zero." }
+        if streak < 3 { return "Barely started. Keep going." }
+        if streak < 7 { return "Don\u{2019}t break it now." }
+        return "Most people never get here."
+    }
+
     var body: some View {
-        VStack(spacing: 16) {
-            let today = Date()
-            let completedToday = history.completedCount(on: today)
-            let streak = history.streak(upTo: today)
-
-            StatCard(title: "Today", value: "\(completedToday)/\(totalTasks)", systemImage: "sun.max.fill")
-            StatCard(title: "Streak", value: "\(streak) days", systemImage: "flame.fill")
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Last 7 days").font(.headline)
-                Chart(history.lastNDays(7), id: \.date) { item in
-                    BarMark(
-                        x: .value("Date", item.date, unit: .day),
-                        y: .value("Completed", item.count)
-                    )
-                    .foregroundStyle(.orange)
-                    .annotation(position: .top, alignment: .center) {
-                        if item.count > 0 {
-                            Text("\(item.count)")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+        NavigationStack {
+            ScrollView {
+                if !streakManager.hasAnyData() && completedToday == 0 {
+                    statsEmptyState
+                } else {
+                    statsContent
                 }
-                .chartYScale(domain: 0...max(1, totalTasks))
-                .frame(height: 180)
             }
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color(.systemGray6)))
+            .scrollIndicators(.hidden)
+            .background(.white)
+            .navigationTitle("Stats")
+            .navigationBarTitleDisplayMode(.large)
+        }
+    }
+
+    // MARK: - Empty State
+
+    private var statsEmptyState: some View {
+        VStack(spacing: 20) {
+            Spacer().frame(height: 80)
+
+            Image(systemName: "chart.bar.xaxis")
+                .font(.system(size: 56))
+                .foregroundStyle(Color(.systemGray4))
+
+            Text("No data.")
+                .font(.title2.bold())
+
+            Text("You haven\u{2019}t done anything yet.\nComplete a routine and come back.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
             Spacer()
         }
-        .padding()
-        .background(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
+    }
+
+    // MARK: - Stats Content
+
+    private var statsContent: some View {
+        VStack(spacing: 16) {
+            // Today card
+            StatCard(
+                icon: "sun.max.fill",
+                iconColor: .orange,
+                title: "Today: \(completedToday)/\(totalTasks) complete",
+                subtitle: todaySubtitle,
+                value: totalTasks > 0
+                    ? "\(Int((Double(completedToday) / Double(totalTasks)) * 100))%"
+                    : "0%",
+                progress: totalTasks > 0
+                    ? Double(completedToday) / Double(totalTasks)
+                    : 0
+            )
+
+            // Streak card
+            StatCard(
+                icon: "flame.fill",
+                iconColor: streak > 0 ? .orange : Color(.systemGray3),
+                title: "\u{1F525} \(streak) Day Streak",
+                subtitle: streakSubtitle,
+                value: nil,
+                progress: nil
+            )
+
+            // Last 7 days chart
+            WeeklyBarChart(
+                data: last7,
+                totalTasks: totalTasks,
+                selectedDay: $selectedDay
+            )
+
+            // Insight cards grid
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 12),
+                GridItem(.flexible(), spacing: 12)
+            ], spacing: 12) {
+                InsightCard(
+                    icon: "calendar",
+                    label: "This Week",
+                    value: "\(weekData.completed)/\(weekData.elapsed)",
+                    sublabel: weekData.completed == weekData.elapsed && weekData.elapsed > 0
+                        ? "Perfect so far."
+                        : "days completed"
+                )
+
+                InsightCard(
+                    icon: "percent",
+                    label: "Success Rate",
+                    value: "\(successRate)%",
+                    sublabel: successRate == 0
+                        ? "Embarrassing."
+                        : successRate == 100 ? "Flawless." : "Room to improve."
+                )
+
+                InsightCard(
+                    icon: "trophy.fill",
+                    label: "Best Streak",
+                    value: "\(longest)",
+                    sublabel: longest == 0
+                        ? "No streak yet."
+                        : longest == 1 ? "day. Just one." : "days"
+                )
+
+                InsightCard(
+                    icon: "checkmark.seal.fill",
+                    label: "Total Done",
+                    value: "\(streakManager.totalTasksCompleted())",
+                    sublabel: "tasks completed"
+                )
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 32)
     }
 }
 
-// MARK: - Stat Card View
+// MARK: - Stat Card
 
 private struct StatCard: View {
+    let icon: String
+    let iconColor: Color
     let title: String
-    let value: String
-    let systemImage: String
+    let subtitle: String
+    let value: String?
+    let progress: Double?
 
     var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: systemImage)
-                .font(.system(size: 32))
-                .foregroundStyle(.orange)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 24))
+                    .foregroundStyle(iconColor)
+                    .frame(width: 40, height: 40)
+                    .background(iconColor.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
 
-            VStack(alignment: .leading) {
-                Text(title)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.title2.weight(.bold))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                if let value {
+                    Text(value)
+                        .font(.title.bold())
+                        .foregroundStyle(.orange)
+                }
             }
-            Spacer()
+
+            if let progress {
+                ProgressView(value: min(progress, 1.0))
+                    .tint(.orange)
+                    .scaleEffect(y: 1.5, anchor: .center)
+                    .clipShape(Capsule())
+                    .animation(.easeInOut(duration: 0.3), value: progress)
+            }
         }
-        .padding()
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemGray6))
+        )
+    }
+}
+
+// MARK: - Weekly Bar Chart
+
+private struct WeeklyBarChart: View {
+    let data: [(date: Date, count: Int)]
+    let totalTasks: Int
+    @Binding var selectedDay: Date?
+
+    private let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEE"
+        return f
+    }()
+
+    private let detailFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.bar.fill")
+                    .foregroundStyle(.orange)
+                Text("Last 7 Days")
+                    .font(.headline)
+                Spacer()
+            }
+
+            // Selected day detail
+            if let selected = selectedDay,
+               let item = data.first(where: {
+                   Calendar.current.isDate($0.date, inSameDayAs: selected)
+               }) {
+                HStack(spacing: 8) {
+                    Text(detailFormatter.string(from: item.date))
+                        .font(.caption.weight(.semibold))
+                    Text("\u{2022}")
+                        .foregroundStyle(.secondary)
+                    Text("\(item.count)/\(totalTasks) tasks")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedDay = nil
+                        }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            // Bar chart
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(data, id: \.date) { item in
+                    let pct = totalTasks > 0
+                        ? Double(item.count) / Double(totalTasks)
+                        : 0
+                    let isSelected = selectedDay.map {
+                        Calendar.current.isDate($0, inSameDayAs: item.date)
+                    } ?? false
+                    let isToday = Calendar.current.isDateInToday(item.date)
+
+                    VStack(spacing: 6) {
+                        // Count label
+                        if item.count > 0 {
+                            Text("\(item.count)")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(isSelected ? .orange : .secondary)
+                        }
+
+                        // Bar
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(
+                                item.count > 0
+                                    ? (isSelected
+                                        ? Color.orange
+                                        : Color.orange.opacity(0.7))
+                                    : Color(.systemGray5)
+                            )
+                            .frame(height: max(8, CGFloat(pct) * 120))
+                            .animation(.easeInOut(duration: 0.3), value: item.count)
+
+                        // Day label
+                        Text(dayFormatter.string(from: item.date))
+                            .font(.system(size: 11, weight: isToday ? .bold : .regular))
+                            .foregroundStyle(isToday ? .primary : .secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedDay = isSelected ? nil : item.date
+                        }
+                    }
+                }
+            }
+            .frame(height: 160)
+            .padding(.top, 4)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemGray6))
+        )
+    }
+}
+
+// MARK: - Insight Card
+
+private struct InsightCard: View {
+    let icon: String
+    let label: String
+    let value: String
+    let sublabel: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(.orange)
+                .frame(width: 36, height: 36)
+                .background(Color.orange.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            Text(value)
+                .font(.title2.bold())
+
+            Text(label)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+
+            Text(sublabel)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .padding(.horizontal, 8)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(.systemGray6))

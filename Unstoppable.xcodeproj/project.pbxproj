@@ -26,6 +26,7 @@
 		A71B2E2A2A0B1C0F00F1A2B3 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E292A0B1C0F00F1A2B3 /* HomeView.swift */; };
 		A71B2E2C2A0B1C1000F1A2B3 /* RoutineTemplatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E2B2A0B1C1000F1A2B3 /* RoutineTemplatesView.swift */; };
 		A71B2E2E2A0B1C1100F1A2B3 /* RoutineTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E2D2A0B1C1100F1A2B3 /* RoutineTimerView.swift */; };
+		A71B2E302A0B1C1200F1A2B3 /* StreakManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E2F2A0B1C1200F1A2B3 /* StreakManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -49,6 +50,7 @@
 		A71B2E292A0B1C0F00F1A2B3 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A71B2E2B2A0B1C1000F1A2B3 /* RoutineTemplatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTemplatesView.swift; sourceTree = "<group>"; };
 		A71B2E2D2A0B1C1100F1A2B3 /* RoutineTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTimerView.swift; sourceTree = "<group>"; };
+		A71B2E2F2A0B1C1200F1A2B3 /* StreakManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,6 +109,7 @@
 				2B0135DF2F3D3E84007ED162 /* onboarding */,
 				A71B2E292A0B1C0F00F1A2B3 /* HomeView.swift */,
 				A71B2E2D2A0B1C1100F1A2B3 /* RoutineTimerView.swift */,
+				A71B2E2F2A0B1C1200F1A2B3 /* StreakManager.swift */,
 				A71B2E042A0B1C0100F1A2B3 /* Assets.xcassets */,
 			);
 			path = Unstoppable;
@@ -197,6 +200,7 @@
 				A71B2E2A2A0B1C0F00F1A2B3 /* HomeView.swift in Sources */,
 				A71B2E2C2A0B1C1000F1A2B3 /* RoutineTemplatesView.swift in Sources */,
 				A71B2E2E2A0B1C1100F1A2B3 /* RoutineTimerView.swift in Sources */,
+				A71B2E302A0B1C1200F1A2B3 /* StreakManager.swift in Sources */,
 				2B0135E12F3D3F1C007ED162 /* OnboardingUI.swift in Sources */,
 				A71B2E012A0B1C0000F1A2B3 /* UnstoppableApp.swift in Sources */,
 			);

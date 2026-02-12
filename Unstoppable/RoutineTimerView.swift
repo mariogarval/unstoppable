@@ -63,9 +63,11 @@ struct RoutineTimerView: View {
 
     private var timerContent: some View {
         VStack(spacing: 0) {
+            // Top bar: X left | "1 of N" center | "Ends time" right
             TimerTopBar(
                 currentIndex: currentIndex,
                 totalTasks: tasks.count,
+                endTimeText: endTimeText,
                 onClose: {
                     stopTimer()
                     onComplete(completedIDs)
@@ -74,44 +76,23 @@ struct RoutineTimerView: View {
             )
             .padding(.horizontal, 24)
             .padding(.top, 20)
-            .accessibilityElement(children: .combine)
-
-            // endTimeText below top bar, centered
-            Text(endTimeText)
-                .font(.system(size: 16, weight: .regular, design: .default))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                .frame(maxWidth: .infinity)
-                .accessibilityLabel("Routine ends at \(endTimeText.replacingOccurrences(of: "Ends ", with: ""))")
-
-            Spacer()
 
             if let task = currentTask {
-                // Title of current step above ring
-                Text(task.title)
-                    .font(.system(size: 34, weight: .bold, design: .default))
-                    .lineLimit(1)
-                    .foregroundColor(.primary)
-                    .padding(.bottom, 12)
-                    .accessibilityLabel("Current task: \(task.title)")
+                Spacer()
 
-                // TimerRing with increased height and centered content in VStack with Spacers
-                VStack(spacing: 0) {
-                    Spacer()
-                    TimerRing(
-                        fraction: progressFraction,
-                        icon: task.icon,
-                        countdown: countdownText
-                    )
-                    .frame(height: 400)
-                    .accessibilityElement(children: .combine)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
+                // Timer ring fills the center
+                TimerRing(
+                    fraction: progressFraction,
+                    icon: task.icon,
+                    taskName: task.title,
+                    countdown: countdownText,
+                    isPaused: isPaused
+                )
+                .padding(.horizontal, 24)
 
-                // "Done" button below TimerRing above controls
+                Spacer()
+
+                // Done button
                 Button(action: {
                     completeCurrentTask()
                 }) {
@@ -125,13 +106,11 @@ struct RoutineTimerView: View {
                     .frame(maxWidth: .infinity, minHeight: 52)
                     .background(Color.green)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: Color.green.opacity(0.6), radius: 6, x: 0, y: 3)
+                    .shadow(color: Color.green.opacity(0.4), radius: 8, x: 0, y: 4)
                 }
                 .padding(.horizontal, 40)
-                .padding(.top, 32)
-                .padding(.bottom, 24)
+                .padding(.bottom, 20)
                 .accessibilityLabel("Complete current task")
-
             }
 
             TimerControls(
@@ -227,35 +206,42 @@ struct RoutineTimerView: View {
 private struct TimerTopBar: View {
     let currentIndex: Int
     let totalTasks: Int
+    let endTimeText: String
     let onClose: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            // Close button with larger tap area, background, shadow
-            Button(action: onClose) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 32, weight: .semibold, design: .default))
-                    .foregroundColor(.primary)
-                    .frame(width: 32, height: 32)
-                    .contentShape(Rectangle())
-            }
-            .frame(width: 44, height: 44)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(.systemGray6))
-                    .shadow(color: Color.black.opacity(0.12), radius: 4, x: 0, y: 2)
-            )
-            .accessibilityLabel("Close")
-
-            Spacer()
-
-            // Right aligned progress text only
+        ZStack {
+            // Center: progress
             Text("\(currentIndex + 1) of \(totalTasks)")
-                .font(.system(size: 20, weight: .semibold, design: .default))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.primary)
                 .accessibilityLabel("Step \(currentIndex + 1) of \(totalTasks)")
+
+            HStack {
+                // Left: close button
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .frame(width: 48, height: 48)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color(.systemGray6))
+                        )
+                        .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
+                }
+                .accessibilityLabel("Close")
+
+                Spacer()
+
+                // Right: end time
+                Text(endTimeText)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(.secondary)
+                    .accessibilityLabel("Routine \(endTimeText)")
+            }
         }
-        .frame(height: 44)
+        .frame(height: 48)
     }
 }
 
@@ -264,31 +250,28 @@ private struct TimerTopBar: View {
 private struct TimerRing: View {
     let fraction: Double
     let icon: String
+    let taskName: String
     let countdown: String
+    let isPaused: Bool
 
     var body: some View {
         GeometryReader { geometry in
-            let diameter = min(geometry.size.width, geometry.size.height * 0.6)
+            let diameter = min(geometry.size.width - 32, geometry.size.height) * 0.85
             ZStack {
-                // Background blur/glass effect behind ring
-                RoundedRectangle(cornerRadius: diameter * 0.5)
-                    .fill(.ultraThinMaterial)
-                    .frame(width: diameter + 40, height: diameter + 40)
-                    .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
-
                 // Track circle
                 Circle()
                     .stroke(Color(.systemGray5), lineWidth: 12)
                     .frame(width: diameter, height: diameter)
 
-                // Progress circle
+                // Progress arc
                 Circle()
                     .trim(from: 0, to: fraction)
                     .stroke(
-                        LinearGradient(
-                            colors: [.yellow, .orange],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                        AngularGradient(
+                            colors: [.yellow, .orange, .orange],
+                            center: .center,
+                            startAngle: .degrees(0),
+                            endAngle: .degrees(360)
                         ),
                         style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
@@ -296,30 +279,53 @@ private struct TimerRing: View {
                     .frame(width: diameter, height: diameter)
                     .animation(.easeInOut(duration: 0.35), value: fraction)
 
-                // Center content without title
-                VStack(spacing: 6) {
+                // Tip glow dot — uses same -90° start as the arc
+                if fraction > 0.01 {
+                    let tipAngle = Angle.degrees(360 * fraction - 90)
+                    let r = diameter / 2
+                    Circle()
+                        .fill(Color.orange)
+                        .frame(width: 18, height: 18)
+                        .shadow(color: .orange.opacity(0.6), radius: 6)
+                        .offset(
+                            x: r * cos(tipAngle.radians),
+                            y: r * sin(tipAngle.radians)
+                        )
+                        .animation(.easeInOut(duration: 0.35), value: fraction)
+                }
+
+                // Center content: icon, task name, countdown, label
+                VStack(spacing: 4) {
                     Image(systemName: icon)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 48, height: 48)
                         .foregroundColor(.orange)
+                        .padding(.bottom, 4)
+
+                    Text(taskName)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
 
                     Text(countdown)
-                        .font(.system(size: 72, weight: .black, design: .default))
+                        .font(.system(size: 72, weight: .black))
                         .monospacedDigit()
                         .foregroundColor(.primary)
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
+                        .contentTransition(.numericText())
+                        .animation(.easeInOut(duration: 0.2), value: countdown)
 
-                    Text("remaining")
-                        .font(.system(size: 14, weight: .regular, design: .default))
-                        .foregroundColor(.gray)
+                    Text(isPaused ? "PAUSED" : "remaining")
+                        .font(.system(size: 14, weight: isPaused ? .semibold : .regular))
+                        .foregroundColor(isPaused ? .orange : .gray)
                         .padding(.top, -4)
                 }
                 .frame(width: diameter * 0.6)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.easeInOut(duration: 0.35), value: countdown)
         }
     }
 }
@@ -377,12 +383,12 @@ private struct ControlButton: View {
                     .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 4)
                     .overlay(
                         Image(systemName: icon)
-                            .font(.system(size: 32, weight: .semibold, design: .default))
+                            .font(.system(size: 32, weight: .semibold))
                             .foregroundColor(color)
                     )
 
                 Text(label)
-                    .font(.system(size: 15, weight: .semibold, design: .default))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
             }
             .contentShape(Rectangle())
@@ -427,9 +433,10 @@ private struct CompletionView: View {
 
             // Confetti particles
             ForEach(confettiPieces) { piece in
-                Circle()
+                RoundedRectangle(cornerRadius: 2)
                     .fill(piece.color)
-                    .frame(width: piece.size, height: piece.size)
+                    .frame(width: piece.width, height: piece.height)
+                    .rotationEffect(.degrees(piece.rotation))
                     .offset(x: piece.x, y: appeared ? piece.endY : piece.startY)
                     .opacity(appeared ? 0 : 1)
                     .animation(
@@ -444,13 +451,14 @@ private struct CompletionView: View {
                 Spacer()
 
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 72))
+                    .font(.system(size: 80))
                     .foregroundStyle(.green)
                     .scaleEffect(appeared ? 1 : 0.5)
                     .opacity(appeared ? 1 : 0)
 
                 Text("Took you long enough.")
-                    .font(.largeTitle.bold())
+                    .font(.system(size: 32, weight: .bold))
+                    .multilineTextAlignment(.center)
                     .opacity(appeared ? 1 : 0)
 
                 if streak > 0 {
@@ -478,8 +486,7 @@ private struct CompletionView: View {
                 Button(action: onDismiss) {
                     Text("Dismissed")
                         .font(.body.weight(.bold))
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, minHeight: 52)
                         .foregroundStyle(.white)
                         .background(.black)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -499,11 +506,14 @@ private struct CompletionView: View {
 
     private func generateConfetti() -> [ConfettiPiece] {
         let colors: [Color] = [.orange, .yellow, .green, .blue, .pink, .purple, .red]
-        return (0..<40).map { i in
-            ConfettiPiece(
+        return (0..<50).map { i in
+            let size = CGFloat.random(in: 6...14)
+            return ConfettiPiece(
                 id: i,
                 color: colors[i % colors.count],
-                size: CGFloat.random(in: 6...14),
+                width: size * CGFloat.random(in: 0.5...1.5),
+                height: size,
+                rotation: Double.random(in: 0...360),
                 x: CGFloat.random(in: -180...180),
                 startY: CGFloat.random(in: -400 ... -200),
                 endY: CGFloat.random(in: 400...800),
@@ -517,7 +527,9 @@ private struct CompletionView: View {
 private struct ConfettiPiece: Identifiable {
     let id: Int
     let color: Color
-    let size: CGFloat
+    let width: CGFloat
+    let height: CGFloat
+    let rotation: Double
     let x: CGFloat
     let startY: CGFloat
     let endY: CGFloat
@@ -536,4 +548,3 @@ private struct ConfettiPiece: Identifiable {
         onComplete: { _ in }
     )
 }
-
