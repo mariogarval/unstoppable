@@ -8,9 +8,16 @@ struct WelcomeView: View {
     @State private var appleAppeared = false
     @State private var googleAppeared = false
     @State private var guestAppeared = false
+    @State private var isGoogleSigningIn = false
+    @State private var authErrorMessage: String?
+    @State private var navigateNickname = false
+    @State private var navigateHome = false
     @State private var didBootstrap = false
+    @State private var didHandleRestoreRouting = false
+    @State private var cachedBootstrap: BootstrapResponse?
 
     private let syncService = UserDataSyncService.shared
+    private let authSession = AuthSessionManager.shared
 
     var body: some View {
         NavigationStack {
@@ -78,7 +85,9 @@ struct WelcomeView: View {
 
                         // Google — neutral, accessible border and contrast
                         Button {
-                            // Google sign-in action
+                            Task {
+                                await signInWithGoogle()
+                            }
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "g.circle.fill")
@@ -98,6 +107,7 @@ struct WelcomeView: View {
                                     .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
                             )
                         }
+                        .disabled(isGoogleSigningIn)
                         .accessibilityLabel("Continue with Google")
                         .buttonStyle(.plain)
                         .opacity(googleAppeared ? 1 : 0)
@@ -149,6 +159,14 @@ struct WelcomeView: View {
                         .opacity(actionsAppeared ? 1 : 0)
                         .offset(y: actionsAppeared ? 0 : 8)
                         .animation(.easeOut(duration: 0.45).delay(0.18), value: actionsAppeared)
+
+                        if let authErrorMessage {
+                            Text(authErrorMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.top, 4)
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 28)
@@ -169,26 +187,95 @@ struct WelcomeView: View {
                     actionsAppeared = true
                 }
                 .task {
-                    await bootstrapIfNeeded()
+                    if !didHandleRestoreRouting {
+                        didHandleRestoreRouting = true
+                        let restored = await authSession.restoreSessionIfPossible()
+                        let bootstrap = await bootstrapIfNeeded()
+                        if restored {
+                            routeAuthenticatedUser(using: bootstrap)
+                        }
+                    } else {
+                        _ = await bootstrapIfNeeded()
+                    }
                 }
                 .dynamicTypeSize(.medium ... .accessibility5)
                 .navigationTitle("")
                 .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(isPresented: $navigateNickname) {
+                    NicknameView()
+                }
+                .navigationDestination(isPresented: $navigateHome) {
+                    HomeView()
+                }
             }
         }
     }
 
     @MainActor
-    private func bootstrapIfNeeded() async {
-        guard !didBootstrap else { return }
+    private func bootstrapIfNeeded(force: Bool = false) async -> BootstrapResponse? {
+        if !force {
+            guard !didBootstrap else { return cachedBootstrap }
+        }
         didBootstrap = true
         do {
-            _ = try await syncService.fetchBootstrap()
+            let bootstrap = try await syncService.fetchBootstrap()
+            cachedBootstrap = bootstrap
+            return bootstrap
         } catch {
 #if DEBUG
             print("bootstrap failed: \(error.localizedDescription)")
 #endif
+            return cachedBootstrap
         }
+    }
+
+    @MainActor
+    private func signInWithGoogle() async {
+        guard !isGoogleSigningIn else { return }
+
+        isGoogleSigningIn = true
+        authErrorMessage = nil
+        defer { isGoogleSigningIn = false }
+
+        do {
+            try await authSession.signInWithGoogle()
+            let bootstrap = await bootstrapIfNeeded(force: true)
+            routeAuthenticatedUser(using: bootstrap)
+        } catch {
+            authErrorMessage = "Google sign-in failed. Please try again."
+#if DEBUG
+            print("google sign-in failed: \(error.localizedDescription)")
+#endif
+        }
+    }
+
+    @MainActor
+    private func routeAuthenticatedUser(using bootstrap: BootstrapResponse?) {
+        navigateHome = false
+        navigateNickname = false
+
+        if isOnboarded(bootstrap) {
+            navigateHome = true
+            return
+        }
+
+        navigateNickname = true
+    }
+
+    private func isOnboarded(_ bootstrap: BootstrapResponse?) -> Bool {
+        guard let paymentOption = profileString("paymentOption", from: bootstrap) else {
+            return false
+        }
+
+        return !paymentOption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func profileString(_ key: String, from bootstrap: BootstrapResponse?) -> String? {
+        guard let value = bootstrap?.profile[key] else { return nil }
+        if case .string(let str) = value {
+            return str
+        }
+        return nil
     }
 }
 
