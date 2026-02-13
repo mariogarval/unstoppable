@@ -17,6 +17,7 @@ final class AppSettings {
 }
 
 struct HomeView: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedTab = 0
     @State private var settings = AppSettings()
     @State private var totalTasks: Int = 5
@@ -49,7 +50,9 @@ struct HomeView: View {
                 }
                 .tag(1)
 
-            SettingsTab(settings: settings)
+            SettingsTab(settings: settings) {
+                routeToWelcomeAfterSignOut()
+            }
                 .tabItem {
                     Image(systemName: "gearshape.fill")
                     Text("Settings")
@@ -78,6 +81,26 @@ struct HomeView: View {
         } message: {
             Text(streakManager.milestoneMessage ?? "")
         }
+    }
+
+    @MainActor
+    private func routeToWelcomeAfterSignOut() {
+#if canImport(UIKit)
+        guard
+            let scene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first(where: { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive }),
+            let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first
+        else {
+            dismiss()
+            return
+        }
+
+        window.rootViewController = UIHostingController(rootView: WelcomeView())
+        window.makeKeyAndVisible()
+#else
+        dismiss()
+#endif
     }
 }
 
@@ -1045,6 +1068,9 @@ private struct InsightCard: View {
 
 private struct SettingsTab: View {
     @Bindable var settings: AppSettings
+    let onSignedOut: () -> Void
+    @State private var isSigningOut = false
+    @State private var signOutErrorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -1065,8 +1091,52 @@ private struct SettingsTab: View {
                 Section(header: Text("Feedback")) {
                     Toggle("Haptics", isOn: $settings.hapticsEnabled)
                 }
+
+                Section(header: Text("Account")) {
+                    Button(role: .destructive) {
+                        Task {
+                            await handleSignOut()
+                        }
+                    } label: {
+                        if isSigningOut {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                Text("Signing Out...")
+                            }
+                        } else {
+                            Text("Sign Out")
+                        }
+                    }
+                    .disabled(isSigningOut)
+                }
             }
             .navigationTitle("Settings")
+            .alert("Sign Out Failed", isPresented: Binding(
+                get: { signOutErrorMessage != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        signOutErrorMessage = nil
+                    }
+                }
+            )) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(signOutErrorMessage ?? "Please try again.")
+            }
+        }
+    }
+
+    @MainActor
+    private func handleSignOut() async {
+        guard !isSigningOut else { return }
+        isSigningOut = true
+        defer { isSigningOut = false }
+
+        do {
+            try await AuthSessionManager.shared.signOut()
+            onSignedOut()
+        } catch {
+            signOutErrorMessage = error.localizedDescription
         }
     }
 }
