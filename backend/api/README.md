@@ -8,6 +8,9 @@ Cloud Run service implemented with `Flask` + `firebase-admin` (Firestore).
 - `PUT /v1/routines/current`
 - `POST /v1/progress/daily`
 - `GET /v1/bootstrap`
+- `GET /v1/user/subscription`
+- `POST /v1/payments/subscription/snapshot`
+- `POST /v1/payments/revenuecat/webhook`
 - `GET /healthz`
 
 ## Auth
@@ -19,6 +22,10 @@ Local development fallback:
 - Set `ALLOW_DEV_USER_HEADER=1`.
 - Send `X-User-Id: some-user-id`.
 
+RevenueCat webhook auth:
+- Set `REVENUECAT_WEBHOOK_AUTH=<shared-secret>`.
+- Send webhook header `Authorization: Bearer <shared-secret>`.
+
 ## Local run
 
 ```bash
@@ -28,6 +35,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 export GOOGLE_CLOUD_PROJECT=unstoppable-app-dev
 export ALLOW_DEV_USER_HEADER=1
+export REVENUECAT_WEBHOOK_AUTH=dev-webhook-secret
 python src/app.py
 ```
 

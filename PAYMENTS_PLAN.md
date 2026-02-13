@@ -14,6 +14,12 @@ Add production-grade subscription payments using RevenueCat, with iOS app integr
 - Rollout can be staged safely with validation gates and rollback steps.
 - All actions are logged using step IDs so this runbook can be repeated in future repos.
 
+## Current Implementation Status (Unstoppable)
+- Phase 1 (Store + RevenueCat dashboard): pending manual dashboard setup/verification.
+- Phase 2 (iOS integration): implemented in app, builds and launches successfully.
+- Phase 3 (Backend webhook + subscription state): implemented locally in `backend/api/src/app.py`; deploy/runtime verification pending.
+- Phase 4+ (QA, rollout, rollback drills): pending.
+
 ## Scope
 - In scope:
   - RevenueCat project setup (products, entitlements, offerings).
@@ -45,11 +51,31 @@ export FIREBASE_PROJECT_ID="unstoppable-app-dev"
 export API_BASE_URL_DEV="https://unstoppable-api-1094359674860.us-central1.run.app"
 
 export RC_PROJECT_NAME="unstoppable"
-export RC_IOS_API_KEY="<revenuecat_public_sdk_key_ios>"
 export RC_WEBHOOK_AUTH="<strong_random_webhook_secret>"
 export RC_ENTITLEMENT_ID="premium"
 export RC_OFFERING_ID="default"
 ```
+
+## Secret Management Standard (Do Not Commit)
+Use this pattern in every iOS project to prevent accidental key exposure.
+
+1. iOS key injection via local xcconfig files:
+- Commit `App/Config/RevenueCat.xcconfig` with an empty default:
+  - `REVENUECAT_IOS_API_KEY =`
+  - `#include? "Secrets.local.xcconfig"`
+- Commit `App/Config/Secrets.local.xcconfig.example` with placeholders only.
+- Add `App/Config/Secrets.local.xcconfig` to `.gitignore`.
+- Set app target `Debug/Release` `baseConfigurationReference` to `RevenueCat.xcconfig`.
+- Inject `REVENUECAT_IOS_API_KEY` into `Info.plist` as `$(REVENUECAT_IOS_API_KEY)`.
+
+2. Backend/webhook secret storage:
+- Local dev: `.env.local` (gitignored).
+- CI/CD and production: secret manager (for GCP, use Secret Manager and environment variable injection in Cloud Run).
+
+3. Rotation and hygiene:
+- Keep separate keys for test/dev/prod projects.
+- Rotate keys immediately if they are posted in public channels or committed.
+- Never place secrets directly in tracked files, PR descriptions, or command logs.
 
 ## Execution Logging Standard
 Use repository-local action logs during rollout.
@@ -378,4 +404,3 @@ Before reusing this runbook in another repo:
 - Backend receives and persists webhook-driven subscription state.
 - Sign-in/sign-out identity mapping is correct and tested.
 - Build/launch validation and execution logs are complete.
-

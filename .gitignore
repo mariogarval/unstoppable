@@ -3,3 +3,6 @@
 backend/api/.venv/
 backend/api/__pycache__/
 backend/api/**/*.pyc
+.env.local
+.env.*.local
+Unstoppable/Config/Secrets.local.xcconfig

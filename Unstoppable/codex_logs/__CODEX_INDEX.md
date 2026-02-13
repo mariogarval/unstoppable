@@ -4,6 +4,72 @@ This folder tracks Codex session notes for the `Unstoppable` app folder.
 
 ## Entries
 
+### Session: `REVENUECAT_PHASE2_20260212.md` (2026-02-12)
+
+WHAT was done:
+- Validated RevenueCat key wiring using local gitignored xcconfig and re-ran app build/launch checks.
+- Added app-to-backend subscription snapshot sync from `RevenueCatManager` to `/v1/payments/subscription/snapshot`.
+- Added snapshot payload model for backend sync in networking models.
+- Updated `PAYMENTS_PLAN.md` with current implementation status by phase.
+
+KEY FILES modified:
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/Payments/RevenueCatManager.swift`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/Networking/Models.swift`
+- `/Users/luisgalvez/Projects/unstoppable/PAYMENTS_PLAN.md`
+- `/Users/luisgalvez/Projects/unstoppable/README.md`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/codex_logs/REVENUECAT_PHASE2_20260212.md`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/codex_logs/__CODEX_INDEX.md`
+
+STATUS:
+- App-side subscription snapshot sync is implemented and compiling.
+- Build and simulator launch checks passed.
+- Runtime logs indicate Test Store API key usage (dev-only warning).
+
+KEY DECISIONS made:
+- Trigger backend snapshot sync directly from `RevenueCatManager.apply(customerInfo:)` to keep entitlement state in sync after customer updates.
+- Keep sync failures non-fatal and debug-only logged to avoid onboarding/purchase flow regressions.
+
+EXECUTED COMMANDS (with CLI args):
+- `xcodebuild -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj -scheme Unstoppable -configuration Debug -destination "platform=iOS Simulator,name=iPhone 17 Pro" build`
+- `./scripts/run_ios_sim.sh "iPhone 17 Pro"`
+- `xcrun simctl spawn booted log show --style compact --last 2m --predicate 'process == "Unstoppable"'`
+
+### Session: `REVENUECAT_PHASE1_20260212.md` (2026-02-12)
+
+WHAT was done:
+- Started the payments rollout from `PAYMENTS_PLAN.md` by implementing RevenueCat phase-1 app integration.
+- Added RevenueCat SPM wiring, runtime key injection, centralized manager, auth identity hooks, and paywall purchase/restore flow.
+- Revalidated build and simulator launch after integrating RevenueCat.
+
+KEY FILES modified:
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj/project.pbxproj`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/Info.plist`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/Payments/RevenueCatManager.swift`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/Auth/AuthSessionManager.swift`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/UnstoppableApp.swift`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/onboarding/PaywallView.swift`
+- `/Users/luisgalvez/Projects/unstoppable/README.md`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/codex_logs/REVENUECAT_PHASE1_20260212.md`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/codex_logs/__CODEX_INDEX.md`
+
+STATUS:
+- Completed for phase 1 app wiring.
+- RevenueCat SDK is linked and paywall can load offerings + run purchase/restore flows.
+- Remaining work for later phases: dashboard setup completion, backend webhook/state sync, full sandbox matrix.
+
+KEY DECISIONS made:
+- Keep entitlement checks centralized in `RevenueCatManager` with `premium` as the gating entitlement.
+- Map RevenueCat identity to Firebase user ID during restore/sign-in and reset on sign-out.
+- Preserve existing static paywall cards as fallback if offerings are unavailable to avoid blocking onboarding.
+- Keep current backend write path unchanged (`paymentOption` via `POST /v1/user/profile`) while backend webhook phase is pending.
+
+EXECUTED COMMANDS (with CLI args):
+- `xcodebuild -resolvePackageDependencies -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj -scheme Unstoppable -clonedSourcePackagesDirPath /Users/luisgalvez/Projects/unstoppable/.build/SourcePackages`
+- `rg -n "class Purchases|func configure\(|func offerings\(|func customerInfo\(|func purchase\(|func restorePurchases\(|func logIn\(|func logOut\(" .build/SourcePackages/checkouts/purchases-ios/Sources -S`
+- `xcodebuild -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj -scheme Unstoppable -configuration Debug -destination "platform=iOS Simulator,name=iPhone 17 Pro" build`
+- `./scripts/run_ios_sim.sh "iPhone 17 Pro"`
+- `rg -n "RevenueCatManager|PaywallPackage|RevenueCatPurchaseResult|REVENUECAT_IOS_API_KEY|purchases-ios|RevenueCat" Unstoppable Unstoppable.xcodeproj/project.pbxproj -S`
+
 ### Session: `SIGNOUT_ROUTING_20260212.md` (2026-02-12)
 
 WHAT was done:

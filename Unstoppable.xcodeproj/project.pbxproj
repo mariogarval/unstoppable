@@ -15,6 +15,8 @@
 		C0A100051111111111111111 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = C0A500001111111111111111 /* FirebaseAuth */; };
 		C0A100061111111111111111 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = C0A500011111111111111111 /* FirebaseCore */; };
 		C0A100071111111111111111 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C0A500021111111111111111 /* GoogleSignIn */; };
+		C0A100081111111111111111 /* RevenueCatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A200051111111111111111 /* RevenueCatManager.swift */; };
+		C0A100091111111111111111 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C0A500031111111111111111 /* RevenueCat */; };
 		2B0135E12F3D3F1C007ED162 /* OnboardingUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */; };
 		A71B2E012A0B1C0000F1A2B3 /* UnstoppableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */; };
 		A71B2E032A0B1C0000F1A2B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E022A0B1C0000F1A2B3 /* ContentView.swift */; };
@@ -43,6 +45,9 @@
 		C0A200021111111111111111 /* UserDataSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDataSyncService.swift; sourceTree = "<group>"; };
 		C0A200031111111111111111 /* AuthSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionManager.swift; sourceTree = "<group>"; };
 		C0A200041111111111111111 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		C0A200051111111111111111 /* RevenueCatManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatManager.swift; sourceTree = "<group>"; };
+		C0A200061111111111111111 /* RevenueCat.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = RevenueCat.xcconfig; sourceTree = "<group>"; };
+		C0A200071111111111111111 /* Secrets.local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.local.xcconfig.example; sourceTree = "<group>"; };
 		2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingUI.swift; sourceTree = "<group>"; };
 		A71B2DFD2A0B1C0000F1A2B3 /* Unstoppable.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Unstoppable.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnstoppableApp.swift; sourceTree = "<group>"; };
@@ -74,6 +79,7 @@
 				C0A100051111111111111111 /* FirebaseAuth in Frameworks */,
 				C0A100061111111111111111 /* FirebaseCore in Frameworks */,
 				C0A100071111111111111111 /* GoogleSignIn in Frameworks */,
+				C0A100091111111111111111 /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,6 +109,23 @@
 				C0A200031111111111111111 /* AuthSessionManager.swift */,
 			);
 			path = Auth;
+			sourceTree = "<group>";
+		};
+		C0A300031111111111111111 /* Payments */ = {
+			isa = PBXGroup;
+			children = (
+				C0A200051111111111111111 /* RevenueCatManager.swift */,
+			);
+			path = Payments;
+			sourceTree = "<group>";
+		};
+		C0A300041111111111111111 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				C0A200061111111111111111 /* RevenueCat.xcconfig */,
+				C0A200071111111111111111 /* Secrets.local.xcconfig.example */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 		2B0135DF2F3D3E84007ED162 /* onboarding */ = {
@@ -151,6 +174,8 @@
 				C0A300001111111111111111 /* Networking */,
 				C0A300011111111111111111 /* Sync */,
 				C0A300021111111111111111 /* Auth */,
+				C0A300031111111111111111 /* Payments */,
+				C0A300041111111111111111 /* Config */,
 				A71B2E292A0B1C0F00F1A2B3 /* HomeView.swift */,
 				A71B2E2D2A0B1C1100F1A2B3 /* RoutineTimerView.swift */,
 				A71B2E2F2A0B1C1200F1A2B3 /* StreakManager.swift */,
@@ -180,6 +205,7 @@
 				C0A500001111111111111111 /* FirebaseAuth */,
 				C0A500011111111111111111 /* FirebaseCore */,
 				C0A500021111111111111111 /* GoogleSignIn */,
+				C0A500031111111111111111 /* RevenueCat */,
 			);
 			productName = Unstoppable;
 			productReference = A71B2DFD2A0B1C0000F1A2B3 /* Unstoppable.app */;
@@ -212,6 +238,7 @@
 			packageReferences = (
 				C0A400001111111111111111 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				C0A400011111111111111111 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				C0A400021111111111111111 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 			);
 			productRefGroup = A71B2DFE2A0B1C0000F1A2B3 /* Products */;
 			projectDirPath = "";
@@ -243,6 +270,7 @@
 					C0A100011111111111111111 /* Models.swift in Sources */,
 					C0A100021111111111111111 /* UserDataSyncService.swift in Sources */,
 					C0A100031111111111111111 /* AuthSessionManager.swift in Sources */,
+					C0A100081111111111111111 /* RevenueCatManager.swift in Sources */,
 					A71B2E032A0B1C0000F1A2B3 /* ContentView.swift in Sources */,
 				A71B2E102A0B1C0200F1A2B3 /* WelcomeView.swift in Sources */,
 				A71B2E122A0B1C0300F1A2B3 /* NicknameView.swift in Sources */,
@@ -284,6 +312,14 @@
 				minimumVersion = 8.0.0;
 			};
 		};
+		C0A400021111111111111111 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -301,6 +337,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C0A400011111111111111111 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignIn;
+		};
+		C0A500031111111111111111 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0A400021111111111111111 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 
@@ -428,6 +469,7 @@
 		};
 		A71B2E0C2A0B1C0100F1A2B3 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C0A200061111111111111111 /* RevenueCat.xcconfig */;
 			buildSettings = {
 				API_BASE_URL = "https://unstoppable-api-1094359674860.us-central1.run.app";
 				API_DEV_USER_ID = "dev-user-001";
@@ -455,6 +497,7 @@
 		};
 		A71B2E0D2A0B1C0100F1A2B3 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C0A200061111111111111111 /* RevenueCat.xcconfig */;
 			buildSettings = {
 				API_BASE_URL = "https://api.unstoppable.app";
 				API_DEV_USER_ID = "";

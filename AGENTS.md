@@ -7,15 +7,15 @@ This file defines how coding agents should operate in this repository.
 1. Confirm location and branch:
    - `cd /Users/luisgalvez/Projects/unstoppable`
    - `git branch --show-current`
-2. Start a new local action log:
-   - `source /Users/luisgalvez/.codex/skills/actions-log-local/scripts/actions_log.sh`
+2. Start persistent shell output logging:
+   - `source /Users/luisgalvez/.codex/skills/persistent_shell_output/scripts/persistent_shell_output.sh`
 3. Log the first baseline checks:
-   - `action_step QS-01 git status --short`
-   - `action_step QS-02 git branch --show-current`
+   - `shell_step QS-01 git status --short`
+   - `shell_step QS-02 git branch --show-current`
 4. For each meaningful command, use:
-   - `action_step <STEP-ID> <command with args>`
+   - `shell_step <STEP-ID> <command with args>`
 5. For each manual/UI action or decision, use:
-   - `action_note "[STEP-ID] message"`
+   - `shell_note "[STEP-ID] message"`
 6. Validate iOS app before handoff:
    - `xcodebuild -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj -scheme Unstoppable -configuration Debug -destination "platform=iOS Simulator,name=iPhone 17 Pro" build`
    - `./scripts/run_ios_sim.sh "iPhone 17 Pro"`
@@ -39,26 +39,26 @@ This file defines how coding agents should operate in this repository.
 ## Required Session Logging
 
 For implementation sessions, keep a command/action log in:
-- `/Users/luisgalvez/Projects/unstoppable/_actions_log`
+- `/Users/luisgalvez/Projects/unstoppable/_shell_output`
 
 Use the local helper:
 
 ```bash
-source /Users/luisgalvez/.codex/skills/actions-log-local/scripts/actions_log.sh
+source /Users/luisgalvez/.codex/skills/persistent_shell_output/scripts/persistent_shell_output.sh
 ```
 
 Then log each step:
 
 ```bash
-action_step STEP-ID <command with args>
-action_note "[STEP-ID] manual action / decision / result"
+shell_step STEP-ID <command with args>
+shell_note "[STEP-ID] manual action / decision / result"
 ```
 
 Rules:
 - Log commands with args and full output.
-- Log manual console/UI actions with `action_note`.
-- Create a new log file per session.
-- Keep `_actions_log` local-only; do not commit it.
+- Log manual console/UI actions with `shell_note`.
+- Use one persistent shell and one log file per shell session.
+- Keep `_shell_output` local-only; do not commit it.
 
 ## Codex Session Notes (Repository Memory)
 

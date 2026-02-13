@@ -1,0 +1,5 @@
+// Default empty value for repo-safe builds.
+REVENUECAT_IOS_API_KEY =
+
+// Local overrides (gitignored).
+#include? "Secrets.local.xcconfig"

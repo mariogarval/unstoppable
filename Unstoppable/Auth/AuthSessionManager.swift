@@ -39,7 +39,8 @@ final class AuthSessionManager {
 
     @discardableResult
     func restoreSessionIfPossible() async -> Bool {
-        guard Auth.auth().currentUser != nil else { return false }
+        guard let currentUser = Auth.auth().currentUser else { return false }
+        await RevenueCatManager.shared.logIn(appUserID: currentUser.uid)
         await syncService.setAuthMode(makeBearerMode())
         return true
     }
@@ -59,13 +60,15 @@ final class AuthSessionManager {
 
         let accessToken = signInResult.user.accessToken.tokenString
         let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-        _ = try await firebaseSignIn(with: credential)
+        let authResult = try await firebaseSignIn(with: credential)
+        await RevenueCatManager.shared.logIn(appUserID: authResult.user.uid)
         await syncService.setAuthMode(makeBearerMode())
     }
 
     func signOut() async throws {
         GIDSignIn.sharedInstance.signOut()
         try Auth.auth().signOut()
+        await RevenueCatManager.shared.logOut()
         await syncService.setAuthMode(APIEnvironment.defaultAuthMode)
     }
 

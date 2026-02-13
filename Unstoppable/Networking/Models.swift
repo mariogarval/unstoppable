@@ -57,6 +57,17 @@ struct DailyProgressUpsertRequest: Codable, Sendable {
     let completedTaskIds: [String]
 }
 
+struct SubscriptionSnapshotUpsertRequest: Codable, Sendable {
+    let entitlementId: String?
+    let entitlementIds: [String]
+    let isActive: Bool
+    let productId: String?
+    let store: String?
+    let periodType: String?
+    let expirationAt: Date?
+    let gracePeriodExpiresAt: Date?
+}
+
 struct BootstrapResponse: Codable, Sendable {
     let userId: String
     let profile: [String: JSONValue]
