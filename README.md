@@ -1,6 +1,6 @@
 # Unstoppable iOS App + Backend Sync (Current State)
 
-This project is a SwiftUI iOS app with local-first state and background sync to a Python API on Google Cloud Run.
+This project is a SwiftUI iOS app with local-first state, Firebase + Google sign-in, and background sync to a Python API on Google Cloud Run.
 
 ## Current Backend Status
 
@@ -8,6 +8,15 @@ This project is a SwiftUI iOS app with local-first state and background sync to 
 - API service: `unstoppable-api` (Cloud Run, Python/Flask)
 - Base URL (dev): `https://unstoppable-api-1094359674860.us-central1.run.app`
 - Database: Firestore (Native mode, `us-central1`)
+
+## Current Auth Status (Google + Firebase)
+
+- App supports `Continue with Google` from `Unstoppable/WelcomeView.swift`.
+- Firebase is initialized at startup in `Unstoppable/UnstoppableApp.swift`.
+- Auth/session management lives in `Unstoppable/Auth/AuthSessionManager.swift`.
+- On launch, app attempts session restore from `FirebaseAuth.currentUser` and reconfigures API auth mode.
+- On successful Google sign-in, API auth switches to `Authorization: Bearer <Firebase ID token>` via `bearerTokenProvider`.
+- Settings includes a functional `Sign Out` action in `Unstoppable/HomeView.swift` and routes back to `WelcomeView`.
 
 ## App Flow and Endpoint Calls
 
@@ -68,7 +77,7 @@ Build-time config keys (in project build settings / Info.plist injection):
 - `API_DEV_USER_ID`
 
 Current defaults:
-- Debug: uses dev auth (`X-User-Id`, default `dev-user-001`) against Cloud Run dev URL.
+- Debug: supports dev auth (`X-User-Id`, default `dev-user-001`) and switches to bearer token auth after Google sign-in.
 - Release: points to `https://api.unstoppable.app` with dev auth disabled.
 
 ## Data Model and Sync Behavior
@@ -115,3 +124,25 @@ Debug failure logs to watch:
 - `syncUserProfile(...) failed: ...`
 - `syncCurrentRoutine failed: ...`
 - `syncDailyProgress failed: ...`
+- `google sign-in failed: ...`
+
+## Local Action Logs (Reusable)
+
+Use `_actions_log/` at repo root for local-only execution logs (not committed).
+
+Initialize logging helpers:
+
+```bash
+source /Users/luisgalvez/.codex/skills/actions-log-local/scripts/actions_log.sh
+```
+
+Log command steps and manual actions:
+
+```bash
+action_step GA-00 git status --short
+action_note "[GA-11] Enabled Google provider in Firebase Console"
+```
+
+Current local log examples:
+- `_actions_log/GOOGLE_AUTH_EXECUTION_20260212_180846.log`
+- `_actions_log/ACTIONS_EXECUTION_20260212_212327.log`
