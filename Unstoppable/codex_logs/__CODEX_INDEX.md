@@ -4,6 +4,34 @@ This folder tracks Codex session notes for the `Unstoppable` app folder.
 
 ## Entries
 
+### Session: `SIGNOUT_ROUTING_20260212.md` (2026-02-12)
+
+WHAT was done:
+- Added a functional `Sign Out` button in Settings (Account section) with loading and error handling.
+- Wired sign-out to `AuthSessionManager.shared.signOut()` and callback-based completion flow.
+- Fixed post-sign-out navigation so users return to `WelcomeView` instead of the paywall/onboarding stack.
+- Revalidated build and simulator launch after the routing fix.
+
+KEY FILES modified:
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/HomeView.swift`
+
+STATUS:
+- Completed.
+- Settings sign-out is implemented and wired.
+- Post-sign-out destination now resets to `WelcomeView`.
+- Build + simulator launch validation succeeded.
+
+KEY DECISIONS made:
+- Keep sign-out action in Settings using existing app UI structure (`Form` sections) to match current look/feel.
+- Use root-view reset (`UIHostingController(rootView: WelcomeView())`) rather than navigation pop/dismiss to avoid revealing underlying paywall flow.
+- Keep `dismiss()` as fallback if key window lookup fails.
+
+EXECUTED COMMANDS (with CLI args):
+- `rg -n "struct .*Settings|SettingsTab|signOut|HomeView|WelcomeView" Unstoppable`
+- `xcodebuild -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj -scheme Unstoppable -configuration Debug -destination "platform=iOS Simulator,name=iPhone 17 Pro" build`
+- `/Users/luisgalvez/Projects/unstoppable/scripts/run_ios_sim.sh "iPhone 17 Pro"`
+- `rg -n "routeToWelcomeAfterSignOut|Section\(header: Text\(\"Account\"\)\)|handleSignOut|AuthSessionManager\.shared\.signOut\(\)" /Users/luisgalvez/Projects/unstoppable/Unstoppable/HomeView.swift`
+
 ### Session: `UNSTOPPABLE_LOGS_20260212.md` (2026-02-12)
 
 WHAT was done:
