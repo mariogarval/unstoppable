@@ -1,10 +1,12 @@
 import datetime as dt
 import os
+import secrets
 from typing import Any
 
 import firebase_admin
 from firebase_admin import auth, credentials, firestore
 from flask import Flask, jsonify, request
+from google.api_core import exceptions as google_exceptions
 
 
 _db: firestore.Client | None = None
@@ -41,6 +43,55 @@ def _json_body() -> dict[str, Any]:
     if not isinstance(payload, dict):
         return {}
     return payload
+
+
+def _parse_iso_datetime(value: str) -> dt.datetime | None:
+    raw = value.strip()
+    if not raw:
+        return None
+    normalized = raw.replace("Z", "+00:00")
+    try:
+        parsed = dt.datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=dt.timezone.utc)
+    return parsed.astimezone(dt.timezone.utc)
+
+
+def _parse_event_datetime(event: dict[str, Any], ms_key: str, iso_key: str) -> dt.datetime | None:
+    ms_value = event.get(ms_key)
+    if isinstance(ms_value, (int, float)):
+        return dt.datetime.fromtimestamp(ms_value / 1000.0, tz=dt.timezone.utc)
+
+    iso_value = event.get(iso_key)
+    if isinstance(iso_value, str):
+        return _parse_iso_datetime(iso_value)
+    return None
+
+
+def _coerce_firestore_datetime(value: Any) -> dt.datetime | None:
+    if isinstance(value, dt.datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=dt.timezone.utc)
+        return value.astimezone(dt.timezone.utc)
+    if hasattr(value, "to_datetime"):
+        converted = value.to_datetime()  # Firestore Timestamp
+        if converted.tzinfo is None:
+            return converted.replace(tzinfo=dt.timezone.utc)
+        return converted.astimezone(dt.timezone.utc)
+    return None
+
+
+def _webhook_authorized() -> bool:
+    expected = os.getenv("REVENUECAT_WEBHOOK_AUTH", "").strip()
+    if not expected:
+        return False
+    provided = request.headers.get("Authorization", "")
+    if not provided.startswith("Bearer "):
+        return False
+    token = provided.replace("Bearer ", "", 1).strip()
+    return secrets.compare_digest(token, expected)
 
 
 def _user_id_from_request() -> tuple[str | None, tuple[dict[str, str], int] | None]:
@@ -195,6 +246,7 @@ def get_bootstrap() -> tuple[Any, int]:
     routine_doc = user_ref.collection("routine").document("current").get()
     streak_doc = user_ref.collection("stats").document("streak").get()
     today_doc = user_ref.collection("progress").document(_today_yyyy_mm_dd()).get()
+    subscription_doc = user_ref.collection("payments").document("subscription").get()
 
     response = {
         "userId": user_id,
@@ -204,8 +256,190 @@ def get_bootstrap() -> tuple[Any, int]:
         "progress": {
             "today": _json_safe(today_doc.to_dict() if today_doc.exists else {}),
         },
+        "subscription": _json_safe(subscription_doc.to_dict() if subscription_doc.exists else {}),
     }
     return jsonify(response), 200
+
+
+@app.get("/v1/user/subscription")
+def get_user_subscription() -> tuple[Any, int]:
+    user_id, err = _user_id_from_request()
+    if err:
+        return err
+
+    db = _get_db()
+    subscription_doc = (
+        db.collection("users")
+        .document(user_id)
+        .collection("payments")
+        .document("subscription")
+        .get()
+    )
+    return (
+        jsonify(
+            {
+                "ok": True,
+                "userId": user_id,
+                "subscription": _json_safe(subscription_doc.to_dict() if subscription_doc.exists else {}),
+            }
+        ),
+        200,
+    )
+
+
+@app.post("/v1/payments/subscription/snapshot")
+def upsert_subscription_snapshot() -> tuple[Any, int]:
+    user_id, err = _user_id_from_request()
+    if err:
+        return err
+
+    payload = _json_body()
+    allowed_fields = {
+        "entitlementId",
+        "entitlementIds",
+        "isActive",
+        "productId",
+        "store",
+        "periodType",
+        "expirationAt",
+        "gracePeriodExpiresAt",
+    }
+    snapshot: dict[str, Any] = {k: payload[k] for k in allowed_fields if k in payload}
+    snapshot["provider"] = "revenuecat"
+    snapshot["appUserId"] = user_id
+    snapshot["source"] = "app_snapshot"
+    snapshot["updatedAt"] = firestore.SERVER_TIMESTAMP
+
+    if isinstance(snapshot.get("expirationAt"), str):
+        parsed = _parse_iso_datetime(snapshot["expirationAt"])
+        if parsed is not None:
+            snapshot["expirationAt"] = parsed
+    if isinstance(snapshot.get("gracePeriodExpiresAt"), str):
+        parsed = _parse_iso_datetime(snapshot["gracePeriodExpiresAt"])
+        if parsed is not None:
+            snapshot["gracePeriodExpiresAt"] = parsed
+
+    db = _get_db()
+    (
+        db.collection("users")
+        .document(user_id)
+        .collection("payments")
+        .document("subscription")
+        .set(snapshot, merge=True)
+    )
+    return jsonify({"ok": True, "userId": user_id}), 200
+
+
+@app.post("/v1/payments/revenuecat/webhook")
+def revenuecat_webhook() -> tuple[Any, int]:
+    if not _webhook_authorized():
+        return jsonify({"error": "Unauthorized webhook request."}), 401
+
+    payload = _json_body()
+    event = payload.get("event", payload)
+    if not isinstance(event, dict):
+        return jsonify({"error": "Invalid webhook payload."}), 400
+
+    raw_event_id = event.get("id") or event.get("event_id")
+    if not isinstance(raw_event_id, str) or not raw_event_id.strip():
+        return jsonify({"error": "Missing event id."}), 400
+    event_id = raw_event_id.strip()
+
+    raw_event_type = event.get("type")
+    event_type = str(raw_event_type).strip().upper() if raw_event_type else "UNKNOWN"
+
+    raw_user_id = event.get("app_user_id")
+    if not isinstance(raw_user_id, str) or not raw_user_id.strip():
+        return jsonify({"error": "Missing app_user_id."}), 400
+    app_user_id = raw_user_id.strip()
+
+    entitlement_ids: list[str] = []
+    if isinstance(event.get("entitlement_ids"), list):
+        entitlement_ids = [
+            str(v).strip()
+            for v in event.get("entitlement_ids", [])
+            if isinstance(v, str) and v.strip()
+        ]
+    elif isinstance(event.get("entitlement_id"), str) and event["entitlement_id"].strip():
+        entitlement_ids = [event["entitlement_id"].strip()]
+
+    product_id = str(event.get("product_id", "")).strip()
+    store = str(event.get("store", "")).strip()
+    period_type = str(event.get("period_type", "")).strip()
+
+    expiration_at = _parse_event_datetime(event, "expiration_at_ms", "expiration_at")
+    grace_period_expires_at = _parse_event_datetime(
+        event, "grace_period_expiration_at_ms", "grace_period_expiration_at"
+    )
+    event_at = _parse_event_datetime(event, "event_timestamp_ms", "event_timestamp")
+    if event_at is None:
+        event_at = _parse_event_datetime(event, "purchased_at_ms", "purchased_at")
+    if event_at is None:
+        event_at = dt.datetime.now(dt.timezone.utc)
+
+    active_event_types = {"INITIAL_PURCHASE", "RENEWAL", "UNCANCELLATION", "PRODUCT_CHANGE"}
+    inactive_event_types = {"EXPIRATION", "CANCELLATION", "BILLING_ISSUE"}
+
+    if event_type in active_event_types:
+        is_active = True
+    elif event_type in inactive_event_types:
+        is_active = False
+    elif expiration_at is not None:
+        is_active = expiration_at > dt.datetime.now(dt.timezone.utc)
+    else:
+        is_active = False
+
+    db = _get_db()
+    event_ref = db.collection("payments").document("revenuecat").collection("events").document(event_id)
+
+    try:
+        event_ref.create(
+            {
+                "provider": "revenuecat",
+                "eventId": event_id,
+                "eventType": event_type,
+                "appUserId": app_user_id,
+                "eventAt": event_at,
+                "receivedAt": firestore.SERVER_TIMESTAMP,
+                "payload": event,
+            }
+        )
+    except google_exceptions.AlreadyExists:
+        return jsonify({"ok": True, "duplicate": True, "eventId": event_id}), 200
+
+    subscription_ref = (
+        db.collection("users")
+        .document(app_user_id)
+        .collection("payments")
+        .document("subscription")
+    )
+    existing_doc = subscription_ref.get()
+    existing_data = existing_doc.to_dict() if existing_doc.exists else {}
+    existing_event_at = _coerce_firestore_datetime(existing_data.get("latestEventAt"))
+    if existing_event_at is not None and event_at < existing_event_at:
+        return jsonify({"ok": True, "ignoredOutOfOrder": True, "eventId": event_id}), 200
+
+    entitlement_id = entitlement_ids[0] if entitlement_ids else ""
+    normalized = {
+        "provider": "revenuecat",
+        "appUserId": app_user_id,
+        "entitlementId": entitlement_id,
+        "entitlementIds": entitlement_ids,
+        "isActive": is_active,
+        "productId": product_id,
+        "store": store,
+        "periodType": period_type,
+        "expirationAt": expiration_at,
+        "gracePeriodExpiresAt": grace_period_expires_at,
+        "latestEventAt": event_at,
+        "latestEventType": event_type,
+        "rawEventId": event_id,
+        "source": "webhook",
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }
+    subscription_ref.set(normalized, merge=True)
+
+    return jsonify({"ok": True, "eventId": event_id}), 200
 
 
 if __name__ == "__main__":

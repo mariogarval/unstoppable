@@ -31,7 +31,7 @@
 			<string>GoogleSignIn</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.1094359674860-ehqjbqas76tofkpu9fb02enovurr00l4</string>
+				<string>com.googleusercontent.apps.1094359674860-n4jm9ptghhv9o5nc6tvir6dli7fmhloa</string>
 			</array>
 		</dict>
 	</array>
@@ -39,6 +39,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>REVENUECAT_ENABLE_BACKEND_SYNC</key>
+	<string>$(REVENUECAT_ENABLE_BACKEND_SYNC)</string>
+	<key>REVENUECAT_IOS_API_KEY</key>
+	<string>$(REVENUECAT_IOS_API_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

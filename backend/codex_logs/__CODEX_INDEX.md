@@ -4,6 +4,34 @@ This folder tracks Codex session notes for backend work in this repository.
 
 ## Entries
 
+### Session: `REVENUECAT_BACKEND_PHASE3_20260212.md` (2026-02-12)
+
+WHAT was done:
+- Added RevenueCat webhook endpoint with shared-secret auth and event-id idempotency.
+- Persisted normalized subscription state in Firestore and exposed it in bootstrap response.
+- Added `GET /v1/user/subscription` and `POST /v1/payments/subscription/snapshot`.
+- Updated backend API docs for new payments routes and required env var.
+
+KEY FILES modified:
+- `/Users/luisgalvez/Projects/unstoppable/backend/api/src/app.py`
+- `/Users/luisgalvez/Projects/unstoppable/backend/api/README.md`
+- `/Users/luisgalvez/Projects/unstoppable/backend/codex_logs/REVENUECAT_BACKEND_PHASE3_20260212.md`
+- `/Users/luisgalvez/Projects/unstoppable/backend/codex_logs/__CODEX_INDEX.md`
+
+STATUS:
+- Phase 3 backend webhook/subscription plumbing is implemented locally.
+- Syntax checks passed; live endpoint runtime validation is pending environment setup/deploy.
+
+KEY DECISIONS made:
+- Enforce webhook auth using `REVENUECAT_WEBHOOK_AUTH`.
+- Use Firestore create-once event documents to ignore duplicate webhook deliveries.
+- Ignore out-of-order events to avoid stale subscription overwrite.
+
+EXECUTED COMMANDS (with CLI args):
+- `python3 -m py_compile backend/api/src/app.py`
+- `rg -n "@app\.(get|post|put)\(\"/v1/(payments|user/subscription|bootstrap)" backend/api/src/app.py`
+- `rg -n "REVENUECAT_WEBHOOK_AUTH|/v1/payments/revenuecat/webhook|/v1/payments/subscription/snapshot|/v1/user/subscription" backend/api/README.md`
+
 ### Session: `CLOUD_SETUP_20260212.md` (2026-02-12)
 
 WHAT was done:

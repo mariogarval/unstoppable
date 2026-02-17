@@ -7,6 +7,7 @@ struct UnstoppableApp: App {
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
         }
+        RevenueCatManager.shared.configureIfNeeded()
     }
 
     var body: some Scene {

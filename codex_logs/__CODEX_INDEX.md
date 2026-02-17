@@ -4,6 +4,38 @@ This folder tracks Codex session notes for this repository.
 
 ## Entries
 
+### Session: `PAYMENTS_PLAN_20260213.md` (2026-02-13)
+
+WHAT was done:
+- Created `/Users/luisgalvez/Projects/unstoppable/PAYMENTS_PLAN.md` as a reusable RevenueCat payments runbook.
+- Defined phase-based execution steps (`RC-00` to `RC-52`) for setup, app integration, backend webhook handling, QA, rollout, and rollback.
+- Added cross-project reuse guidance so the same flow can be applied to future apps with minimal edits.
+
+KEY FILES modified:
+- `/Users/luisgalvez/Projects/unstoppable/PAYMENTS_PLAN.md`
+- `/Users/luisgalvez/Projects/unstoppable/codex_logs/PAYMENTS_PLAN_20260213.md`
+- `/Users/luisgalvez/Projects/unstoppable/codex_logs/__CODEX_INDEX.md`
+
+STATUS:
+- Completed.
+- New runbook is ready for implementation execution.
+- Branch prepared for follow-up payment integration work.
+
+KEY DECISIONS made:
+- Use RevenueCat entitlement (`premium`) as the single source for app feature gating.
+- Map authenticated app identity (`Firebase UID`) to RevenueCat `appUserID` for deterministic restore across devices.
+- Require webhook authorization + idempotency to keep backend subscription state consistent.
+- Include rollout guardrails (feature flag + staged release + rollback) in the base runbook, not as optional documentation.
+
+EXECUTED COMMANDS (with CLI args):
+- `git status --short`
+- `git branch --show-current`
+- `git checkout -b codex/payments-revenuecat-plan`
+- `sed -n '1,260p' GOOGLE_AUTH_PLAN.md`
+- `sed -n '1,260p' README.md`
+- `rg -n "paywall|subscription|purchase|iap|revenuecat|StoreKit" Unstoppable README.md backend -S`
+- `sed -n '1,260p' codex_logs/SIMULATOR_LAUNCH_20260212.md`
+
 ### Session: `SIMULATOR_LAUNCH_20260212.md` (2026-02-12)
 
 WHAT was done:

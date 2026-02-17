@@ -2,10 +2,39 @@ import SwiftUI
 
 struct PaywallView: View {
     @State private var selectedPlan: Plan = .annual
+    @State private var selectedPackageID: String?
     @State private var navigateHome = false
+    @State private var isPurchasing = false
+    @State private var isRestoring = false
+    @State private var purchaseErrorMessage: String?
+    @StateObject private var revenueCat = RevenueCatManager.shared
     private let syncService = UserDataSyncService.shared
 
     enum Plan: String { case annual, monthly }
+
+    private var selectedDynamicPackage: PaywallPackage? {
+        guard let selectedPackageID else { return nil }
+        return revenueCat.packages.first(where: { $0.id == selectedPackageID })
+    }
+
+    private var ctaTitle: String {
+        if isPurchasing {
+            return "Processing..."
+        }
+
+        if let selectedDynamicPackage {
+            return "Continue - \(selectedDynamicPackage.price)"
+        }
+
+        return selectedPlan == .annual ? "Start Now. 7 Days Free." : "Subscribe. No Excuses."
+    }
+
+    private var ctaIconName: String {
+        if let selectedDynamicPackage {
+            return selectedDynamicPackage.isRecommended ? "sparkles" : "checkmark.seal.fill"
+        }
+        return selectedPlan == .annual ? "sparkles" : "checkmark.seal.fill"
+    }
 
     private var trialEndDate: String {
         let date = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
@@ -63,27 +92,45 @@ struct PaywallView: View {
 
                 // Plan cards
                 VStack(spacing: 12) {
-                    PlanCard(
-                        title: "ANNUAL",
-                        price: "Free",
-                        detail: "1 week free, then US$27.49/yr",
-                        badge: "BEST VALUE",
-                        isSelected: selectedPlan == .annual
-                    ) {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            selectedPlan = .annual
+                    if revenueCat.packages.isEmpty {
+                        PlanCard(
+                            title: "ANNUAL",
+                            price: "Free",
+                            detail: "1 week free, then US$27.49/yr",
+                            badge: "BEST VALUE",
+                            isSelected: selectedPlan == .annual
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                selectedPlan = .annual
+                                selectedPackageID = nil
+                            }
                         }
-                    }
 
-                    PlanCard(
-                        title: "MONTHLY",
-                        price: "US$3.99",
-                        detail: "charged monthly",
-                        badge: nil,
-                        isSelected: selectedPlan == .monthly
-                    ) {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            selectedPlan = .monthly
+                        PlanCard(
+                            title: "MONTHLY",
+                            price: "US$3.99",
+                            detail: "charged monthly",
+                            badge: nil,
+                            isSelected: selectedPlan == .monthly
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                selectedPlan = .monthly
+                                selectedPackageID = nil
+                            }
+                        }
+                    } else {
+                        ForEach(revenueCat.packages) { package in
+                            PlanCard(
+                                title: package.title,
+                                price: package.price,
+                                detail: package.detail,
+                                badge: package.isRecommended ? "BEST VALUE" : nil,
+                                isSelected: selectedPackageID == package.id
+                            ) {
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    selectedPackageID = package.id
+                                }
+                            }
                         }
                     }
                 }
@@ -108,15 +155,26 @@ struct PaywallView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 12)
 
+                if let purchaseErrorMessage {
+                    Text(purchaseErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+                }
+
                 // CTA
                 Button {
-                    completePaywallSelection(selectedPlan.rawValue)
+                    Task {
+                        await handleContinueTapped()
+                    }
                 } label: {
                     Label {
-                        Text(selectedPlan == .annual ? "Start Now. 7 Days Free." : "Subscribe. No Excuses.")
+                        Text(ctaTitle)
                             .font(.headline)
                     } icon: {
-                        Image(systemName: selectedPlan == .annual ? "sparkles" : "checkmark.seal.fill")
+                        Image(systemName: ctaIconName)
                     }
                     .labelStyle(.titleAndIcon)
                     .frame(maxWidth: .infinity, minHeight: 48)
@@ -128,7 +186,21 @@ struct PaywallView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 28)
+                .disabled(isPurchasing || isRestoring || revenueCat.isLoadingOfferings)
                 .accessibilityHint("Starts a 7‑day free trial, then auto‑renews unless canceled.")
+
+                Button {
+                    Task {
+                        await restorePurchases()
+                    }
+                } label: {
+                    Text(isRestoring ? "Restoring..." : "Restore Purchases")
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(.tint)
+                        .frame(minHeight: 44)
+                }
+                .buttonStyle(.plain)
+                .disabled(isPurchasing || isRestoring || revenueCat.isLoadingOfferings)
 
                 Button {
                     completePaywallSelection("skip")
@@ -155,8 +227,77 @@ struct PaywallView: View {
                 }
             }
         }
+        .task {
+            await revenueCat.refreshPaywall()
+            if selectedPackageID == nil {
+                selectedPackageID = revenueCat.defaultPackageID()
+            }
+        }
+        .onChange(of: revenueCat.packages) { _, newPackages in
+            guard !newPackages.isEmpty else { return }
+            if let selectedPackageID, newPackages.contains(where: { $0.id == selectedPackageID }) {
+                return
+            }
+            self.selectedPackageID = revenueCat.defaultPackageID()
+        }
         .navigationDestination(isPresented: $navigateHome) {
             HomeView()
+        }
+    }
+
+    @MainActor
+    private func handleContinueTapped() async {
+        if let selectedDynamicPackage {
+            await purchase(selectedDynamicPackage)
+            return
+        }
+        completePaywallSelection(selectedPlan.rawValue)
+    }
+
+    @MainActor
+    private func purchase(_ package: PaywallPackage) async {
+        guard !isPurchasing else { return }
+
+        isPurchasing = true
+        purchaseErrorMessage = nil
+        defer { isPurchasing = false }
+
+        do {
+            let result = try await revenueCat.purchase(packageID: package.id)
+            switch result {
+            case .purchased:
+                completePaywallSelection(package.paymentOption)
+            case .cancelled:
+                break
+            }
+        } catch {
+            purchaseErrorMessage = "Purchase failed. Please try again."
+#if DEBUG
+            print("RevenueCat purchase failed: \(error.localizedDescription)")
+#endif
+        }
+    }
+
+    @MainActor
+    private func restorePurchases() async {
+        guard !isRestoring else { return }
+
+        isRestoring = true
+        purchaseErrorMessage = nil
+        defer { isRestoring = false }
+
+        do {
+            let restored = try await revenueCat.restorePurchases()
+            if restored {
+                completePaywallSelection("restore")
+            } else {
+                purchaseErrorMessage = "No active subscription found to restore."
+            }
+        } catch {
+            purchaseErrorMessage = "Restore failed. Please try again."
+#if DEBUG
+            print("RevenueCat restore failed: \(error.localizedDescription)")
+#endif
         }
     }
 
