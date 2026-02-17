@@ -41,7 +41,9 @@ final class RevenueCatManager: NSObject, ObservableObject {
 
     private let entitlementID = "premium"
     private let apiKeyInfoKey = "REVENUECAT_IOS_API_KEY"
+    private let backendSyncEnabledInfoKey = "REVENUECAT_ENABLE_BACKEND_SYNC"
     private var packageByID: [String: Package] = [:]
+    private lazy var isBackendSyncEnabled = configuredBackendSyncEnabled()
 
     func configureIfNeeded() {
         if Purchases.isConfigured {
@@ -167,8 +169,10 @@ final class RevenueCatManager: NSObject, ObservableObject {
 
     private func apply(customerInfo: CustomerInfo) {
         isPremiumActive = hasActiveEntitlement(customerInfo)
-        Task {
-            await syncSubscriptionSnapshot(customerInfo: customerInfo)
+        if isBackendSyncEnabled {
+            Task {
+                await syncSubscriptionSnapshot(customerInfo: customerInfo)
+            }
         }
     }
 
@@ -190,6 +194,27 @@ final class RevenueCatManager: NSObject, ObservableObject {
             return nil
         }
         return value
+    }
+
+    private func configuredBackendSyncEnabled() -> Bool {
+        let rawValue = Bundle.main.object(forInfoDictionaryKey: backendSyncEnabledInfoKey)
+
+        if let boolValue = rawValue as? Bool {
+            return boolValue
+        }
+
+        guard let stringValue = (rawValue as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() else {
+            return false
+        }
+
+        switch stringValue {
+        case "1", "true", "yes":
+            return true
+        default:
+            return false
+        }
     }
 
     private func makePaywallPackage(from package: Package) -> PaywallPackage {

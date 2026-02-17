@@ -48,7 +48,7 @@ Initial bootstrap log:
 
 ### Manual console/UI actions completed
 - Enabled Google sign-in provider in Firebase Authentication (`GA-11`).
-- Downloaded Firebase iOS config (`GoogleService-Info.plist`) for bundle `com.unstoppable.app` (`GA-12`).
+- Downloaded Firebase iOS config (`GoogleService-Info.plist`) for bundle `app.unstoppable.unstoppable` (`GA-12`).
 - Confirmed and applied Google callback URL scheme using `REVERSED_CLIENT_ID` (`GA-13`).
 - Interactive simulator sign-in tested with real Google account.
 
@@ -113,7 +113,7 @@ Replace values for each app rollout.
 
 ```bash
 export APP_NAME="Unstoppable"
-export IOS_BUNDLE_ID="com.unstoppable.app"
+export IOS_BUNDLE_ID="app.unstoppable.unstoppable"
 export XCODE_PROJECT_PATH="/Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj"
 export XCODE_SCHEME="Unstoppable"
 export SIMULATOR_NAME="iPhone 17 Pro"

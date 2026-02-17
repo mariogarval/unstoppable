@@ -4,6 +4,67 @@ This folder tracks Codex session notes for the `Unstoppable` app folder.
 
 ## Entries
 
+### Session: `BUNDLE_ID_MIGRATION_20260217.md` (2026-02-17)
+
+WHAT was done:
+- Updated bundle-id references for the app migration to `app.unstoppable.unstoppable`.
+- Updated `GoogleService-Info.plist` `BUNDLE_ID` and runbook env examples in payments/auth plans.
+- Rebuilt and launched simulator app to validate compile/install/launch with the new identifier.
+
+KEY FILES modified:
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/GoogleService-Info.plist`
+- `/Users/luisgalvez/Projects/unstoppable/GOOGLE_AUTH_PLAN.md`
+- `/Users/luisgalvez/Projects/unstoppable/PAYMENTS_PLAN.md`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/codex_logs/BUNDLE_ID_MIGRATION_20260217.md`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/codex_logs/__CODEX_INDEX.md`
+
+STATUS:
+- Completed for local code/config changes.
+- Build and simulator launch checks passed.
+- Firebase Console follow-up remains required for Google Sign-In alignment.
+
+KEY DECISIONS made:
+- Standardized on `app.unstoppable.unstoppable` for app/store/revenuecat alignment.
+- Kept Firebase OAuth update as a required manual console step.
+
+EXECUTED COMMANDS (with CLI args):
+- `xcodebuild -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj -scheme Unstoppable -configuration Debug -destination "platform=iOS Simulator,name=iPhone 17 Pro" build`
+- `./scripts/run_ios_sim.sh "iPhone 17 Pro"`
+- `rg -n "app\\.unstoppable\\.unstoppable|com\\.unstoppable\\.app" /Users/luisgalvez/Projects/unstoppable -S`
+
+### Session: `REVENUECAT_APP_SIDE_FLAG_20260213.md` (2026-02-13)
+
+WHAT was done:
+- Added a runtime feature flag so RevenueCat can run app-side only by default.
+- Gated backend subscription snapshot sync behind `REVENUECAT_ENABLE_BACKEND_SYNC`.
+- Added config/plist wiring and updated payments docs to reflect the new default behavior.
+- Rebuilt the iOS app to verify compile/link success.
+
+KEY FILES modified:
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/Payments/RevenueCatManager.swift`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/Info.plist`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/Config/RevenueCat.xcconfig`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/Config/Secrets.local.xcconfig.example`
+- `/Users/luisgalvez/Projects/unstoppable/README.md`
+- `/Users/luisgalvez/Projects/unstoppable/PAYMENTS_PLAN.md`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/codex_logs/REVENUECAT_APP_SIDE_FLAG_20260213.md`
+- `/Users/luisgalvez/Projects/unstoppable/Unstoppable/codex_logs/__CODEX_INDEX.md`
+
+STATUS:
+- Completed.
+- App-side payments flow remains active without backend payments endpoints.
+- Backend snapshot sync is available but disabled by default.
+- Build validation succeeded.
+
+KEY DECISIONS made:
+- Keep backend sync implementation in code but make activation explicit via config.
+- Default to `REVENUECAT_ENABLE_BACKEND_SYNC=NO` to avoid requiring Flask API during app-side rollout.
+
+EXECUTED COMMANDS (with CLI args):
+- `xcodebuild -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj -scheme Unstoppable -configuration Debug -destination "platform=iOS Simulator,name=iPhone 17 Pro" build`
+- `git status --short`
+- `rg -n "RevenueCat|payments|snapshot|REVENUECAT" README.md PAYMENTS_PLAN.md Unstoppable/Config/Secrets.local.xcconfig`
+
 ### Session: `REVENUECAT_PHASE2_20260212.md` (2026-02-12)
 
 WHAT was done:

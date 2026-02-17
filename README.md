@@ -14,9 +14,11 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Google sign
 - App supports `Continue with Google` from `Unstoppable/WelcomeView.swift`.
 - Firebase is initialized at startup in `Unstoppable/UnstoppableApp.swift`.
 - Auth/session management lives in `Unstoppable/Auth/AuthSessionManager.swift`.
+- Current iOS bundle ID is `app.unstoppable.unstoppable`.
 - On launch, app attempts session restore from `FirebaseAuth.currentUser` and reconfigures API auth mode.
 - On successful Google sign-in, API auth switches to `Authorization: Bearer <Firebase ID token>` via `bearerTokenProvider`.
 - Settings includes a functional `Sign Out` action in `Unstoppable/HomeView.swift` and routes back to `WelcomeView`.
+- If bundle ID changes, regenerate Firebase iOS config (`GoogleService-Info.plist`) for the new app and re-check `CFBundleURLSchemes` (Google reversed client ID) in `Unstoppable/Info.plist`.
 
 ## Current Payments Status (RevenueCat, Phase 1)
 
@@ -34,7 +36,7 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Google sign
   - supports purchase + restore actions
   - keeps existing static plan cards as fallback when offerings are unavailable
 - Current paywall selection sync still posts `paymentOption` through `POST /v1/user/profile`.
-- RevenueCat customer-info updates also sync subscription snapshot data to backend via `POST /v1/payments/subscription/snapshot`.
+- RevenueCat customer-info updates can sync subscription snapshot data to backend via `POST /v1/payments/subscription/snapshot` when `REVENUECAT_ENABLE_BACKEND_SYNC=YES` (default `NO` keeps payments app-side only).
 
 ## App Flow and Endpoint Calls
 
@@ -96,6 +98,7 @@ Build-time config keys (in project build settings / Info.plist injection):
 - `API_USE_DEV_AUTH`
 - `API_DEV_USER_ID`
 - `REVENUECAT_IOS_API_KEY`
+- `REVENUECAT_ENABLE_BACKEND_SYNC` (`NO` default, set `YES` to enable backend snapshot sync)
 
 Current defaults:
 - Debug: supports dev auth (`X-User-Id`, default `dev-user-001`) and switches to bearer token auth after Google sign-in.

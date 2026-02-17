@@ -1,5 +1,6 @@
 // Default empty value for repo-safe builds.
 REVENUECAT_IOS_API_KEY =
+REVENUECAT_ENABLE_BACKEND_SYNC = NO
 
 // Local overrides (gitignored).
 #include? "Secrets.local.xcconfig"

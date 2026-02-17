@@ -43,7 +43,7 @@ Replace these values per project.
 
 ```bash
 export APP_NAME="Unstoppable"
-export IOS_BUNDLE_ID="com.unstoppable.app"
+export IOS_BUNDLE_ID="app.unstoppable.unstoppable"
 export XCODE_PROJECT_PATH="/Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj"
 export XCODE_SCHEME="Unstoppable"
 export SIMULATOR_NAME="iPhone 17 Pro"
@@ -239,6 +239,7 @@ Acceptance:
 ### RC-26: Sync entitlement snapshot to backend
 Implementation:
 - After login/purchase/restore/refresh, POST minimal subscription snapshot to backend for support/debug surfaces.
+- Gate the snapshot call behind `REVENUECAT_ENABLE_BACKEND_SYNC` so app-side-only deployments can run without backend payments APIs.
 - Backend remains eventually consistent with webhook source.
 
 Acceptance:
