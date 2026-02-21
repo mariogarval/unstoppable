@@ -3,7 +3,30 @@
 **Last Updated**: 2026-02-21
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 6 markdown documents
+**Files**: 7 markdown documents
+
+---
+
+## February 21, 2026 - RevenueCat Offerings Blocker + Paywall Retry Hardening
+
+### REVENUECAT_OFFERINGS_BLOCKER_AND_PAYWALL_RETRY_20260221.md 🔄 IN PROGRESS
+**Date**: 2026-02-21 | **Status**: In Progress
+**Branch**: `codex/payments-revenuecat-plan`
+
+**This document captures runtime validation after App Store metadata cleanup plus paywall fallback hardening when offerings are unavailable.**
+
+**Problem Solved**: Removed ambiguous paywall CTA behavior when RevenueCat offerings fail to load by shifting to explicit retry/loading UX instead of non-purchase fallback via the primary CTA.
+
+**Key Results**:
+- Confirmed runtime still blocked on RevenueCat offerings fetch (`OfferingsManager.Error`) despite status improving to `READY_TO_SUBMIT`.
+- Implemented retry/loading CTA behavior and explicit empty-offerings messaging in `PaywallView`.
+- Added local StoreKit config (`Unstoppable/StoreKit/UnstoppableLocal.storekit`) and wired the `Unstoppable` scheme for immediate local purchase UX testing.
+- Added a Settings `Open Paywall (Test)` entry behind `REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON` for targeted test access.
+- Re-validated build/install/launch flow on `iPhone 17 Pro`.
+
+**Next Steps**: Use local StoreKit flow for immediate purchase UX testing, then resolve RevenueCat/App Store Connect offering availability and run full live purchase/restore matrix.
+
+**Related**: `agent_logs/REVENUECAT_PAYMENTS_ROLLOUT_STATUS_20260217.md` (broader rollout context)
 
 ---
 
@@ -135,6 +158,7 @@
 
 | Topic | Location |
 |-------|----------|
+| RevenueCat offerings blocker + paywall retry hardening | `agent_logs/REVENUECAT_OFFERINGS_BLOCKER_AND_PAYWALL_RETRY_20260221.md` |
 | Auth/bootstrap/profile troubleshooting hardening | `agent_logs/AUTH_BOOTSTRAP_PROFILE_SYNC_HARDENING_20260221.md` |
 | Apple auth Firebase rollout status | `agent_logs/APPLE_AUTH_FIREBASE_ROLLOUT_20260221.md` |
 | RevenueCat rollout status | `agent_logs/REVENUECAT_PAYMENTS_ROLLOUT_STATUS_20260217.md` |

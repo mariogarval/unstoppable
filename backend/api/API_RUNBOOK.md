@@ -76,7 +76,9 @@ ALLOW_UNAUTHENTICATED=1 backend/api/deploy_cloud_run.sh unstoppable-app-dev
 
 - **Observed behavior**: Routing looked partially correct because old profile data already existed.
 - **Resolution**: Added reset scripts for deterministic re-tests.
+  - `backend/api/scripts/check_user_payments.py`
   - `backend/api/scripts/reset_user_profile.py`
+  - `backend/api/scripts/reset_user_payments.py`
   - `backend/api/scripts/reset_user_onboarding.py`
 
 ---
@@ -172,6 +174,8 @@ Backend-required fields:
 - `termsOver16Accepted` (`true`)
 - `paymentOption` (non-empty string)
 
+`paymentOption` is typically written by paywall profile sync, and is now also backfilled by payment snapshot/webhook sync when inferred from product metadata.
+
 If any are missing, backend returns:
 - `isProfileComplete = false`
 - `profileCompletion.missingRequiredFields = [...]`
@@ -189,10 +193,27 @@ Set project:
 export GOOGLE_CLOUD_PROJECT=unstoppable-app-dev
 ```
 
+Inspect payment/subscription state and RevenueCat webhook events:
+```bash
+cd backend/api
+python scripts/check_user_payments.py --email your-email@example.com
+```
+
 Reset profile only:
 ```bash
 cd backend/api
 python scripts/reset_user_profile.py --email your-email@example.com
+```
+
+Reset payment status (`users/{uid}/payments/*`) and clear `users/{uid}/profile/self.paymentOption`:
+```bash
+cd backend/api
+python scripts/reset_user_payments.py --email your-email@example.com
+```
+
+Optional: also clear RevenueCat webhook event docs for that user:
+```bash
+python scripts/reset_user_payments.py --email your-email@example.com --clear-webhook-events
 ```
 
 Reset full onboarding data (`profile`, `routine`, `progress`, `stats`, `payments`):
@@ -204,6 +225,7 @@ python scripts/reset_user_onboarding.py --email your-email@example.com
 Dry run:
 ```bash
 python scripts/reset_user_profile.py --email your-email@example.com --dry-run
+python scripts/reset_user_payments.py --email your-email@example.com --dry-run
 python scripts/reset_user_onboarding.py --email your-email@example.com --dry-run
 ```
 

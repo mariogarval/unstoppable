@@ -62,6 +62,7 @@ struct SubscriptionSnapshotUpsertRequest: Codable, Sendable {
     let entitlementIds: [String]
     let isActive: Bool
     let productId: String?
+    let paymentOption: String?
     let store: String?
     let periodType: String?
     let expirationAt: Date?

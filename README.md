@@ -41,7 +41,15 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Googl
 - `Unstoppable/onboarding/PaywallView.swift` now:
   - loads live offerings from RevenueCat when available
   - supports purchase + restore actions
-  - keeps existing static plan cards as fallback when offerings are unavailable
+  - keeps static plan cards as visual fallback, but primary CTA now retries offerings refresh instead of silently proceeding without a purchase package
+- Local purchase UX testing is available via StoreKit configuration:
+  - file: `Unstoppable/StoreKit/UnstoppableLocal.storekit`
+  - scheme wiring: `Unstoppable.xcodeproj/xcshareddata/xcschemes/Unstoppable.xcscheme`
+  - to use it, run the app from Xcode with the `Unstoppable` scheme (the scheme launch action loads the local StoreKit file)
+- Optional Settings test entry for paywall:
+  - feature flag key: `REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON`
+  - default: `NO`
+  - set to `YES` in `Unstoppable/Config/Secrets.local.xcconfig` to show `Open Paywall (Test)` button in Settings.
 - Current paywall selection sync still posts `paymentOption` through `POST /v1/user/profile`.
 - RevenueCat customer-info updates can sync subscription snapshot data to backend via `POST /v1/payments/subscription/snapshot` when `REVENUECAT_ENABLE_BACKEND_SYNC=YES` (default `NO` keeps payments app-side only).
 

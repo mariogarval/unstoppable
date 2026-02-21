@@ -27,6 +27,14 @@ struct PaywallView: View {
             return "Continue - \(selectedDynamicPackage.price)"
         }
 
+        if revenueCat.isLoadingOfferings {
+            return "Loading plans..."
+        }
+
+        if revenueCat.packages.isEmpty {
+            return "Retry loading plans"
+        }
+
         return selectedPlan == .annual ? "Start Now. 7 Days Free." : "Subscribe. No Excuses."
     }
 
@@ -34,6 +42,11 @@ struct PaywallView: View {
         if let selectedDynamicPackage {
             return selectedDynamicPackage.isRecommended ? "sparkles" : "checkmark.seal.fill"
         }
+
+        if revenueCat.packages.isEmpty {
+            return "arrow.clockwise"
+        }
+
         return selectedPlan == .annual ? "sparkles" : "checkmark.seal.fill"
     }
 
@@ -137,6 +150,15 @@ struct PaywallView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
+
+                if revenueCat.packages.isEmpty {
+                    Text("Subscriptions are temporarily unavailable. Tap retry while we refresh plans from App Store Connect.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+                }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Every feature. Zero restrictions.", systemImage: "checkmark.circle.fill")
@@ -257,7 +279,9 @@ struct PaywallView: View {
             await purchase(selectedDynamicPackage)
             return
         }
-        await completePaywallSelection(selectedPlan.rawValue)
+
+        purchaseErrorMessage = "Subscription plans are still loading. Please retry in a moment."
+        await revenueCat.refreshPaywall()
     }
 
     @MainActor

@@ -1071,6 +1071,14 @@ private struct SettingsTab: View {
     let onSignedOut: () -> Void
     @State private var isSigningOut = false
     @State private var signOutErrorMessage: String?
+    @State private var showPaywallTestSheet = false
+
+    private var isPaywallTestButtonEnabled: Bool {
+        Self.infoBool(
+            forKey: "REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON",
+            defaultValue: false
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -1090,6 +1098,14 @@ private struct SettingsTab: View {
                 }
                 Section(header: Text("Feedback")) {
                     Toggle("Haptics", isOn: $settings.hapticsEnabled)
+                }
+
+                if isPaywallTestButtonEnabled {
+                    Section(header: Text("Testing")) {
+                        Button("Open Paywall (Test)") {
+                            showPaywallTestSheet = true
+                        }
+                    }
                 }
 
                 Section(header: Text("Account")) {
@@ -1123,6 +1139,11 @@ private struct SettingsTab: View {
             } message: {
                 Text(signOutErrorMessage ?? "Please try again.")
             }
+            .sheet(isPresented: $showPaywallTestSheet) {
+                NavigationStack {
+                    PaywallView()
+                }
+            }
         }
     }
 
@@ -1138,6 +1159,30 @@ private struct SettingsTab: View {
         } catch {
             signOutErrorMessage = error.localizedDescription
         }
+    }
+
+    private static func infoBool(forKey key: String, defaultValue: Bool) -> Bool {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: key) else {
+            return defaultValue
+        }
+
+        if let boolValue = value as? Bool {
+            return boolValue
+        }
+        if let number = value as? NSNumber {
+            return number.boolValue
+        }
+        if let string = value as? String {
+            switch string.lowercased() {
+            case "1", "true", "yes":
+                return true
+            case "0", "false", "no":
+                return false
+            default:
+                return defaultValue
+            }
+        }
+        return defaultValue
     }
 }
 

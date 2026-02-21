@@ -286,11 +286,14 @@ final class RevenueCatManager: NSObject, ObservableObject {
     private func syncSubscriptionSnapshot(customerInfo: CustomerInfo) async {
         let activeEntitlement = customerInfo.entitlements.active[entitlementID]
         let entitlementIDs = Array(customerInfo.entitlements.active.keys).sorted()
+        let productID = activeEntitlement?.productIdentifier ?? customerInfo.activeSubscriptions.first
+        let inferredPaymentOption = paymentOption(forProductID: productID)
         let request = SubscriptionSnapshotUpsertRequest(
             entitlementId: activeEntitlement == nil ? nil : entitlementID,
             entitlementIds: entitlementIDs,
             isActive: hasActiveEntitlement(customerInfo),
-            productId: activeEntitlement?.productIdentifier ?? customerInfo.activeSubscriptions.first,
+            productId: productID,
+            paymentOption: inferredPaymentOption,
             store: nil,
             periodType: activeEntitlement.map { "\($0.periodType)" },
             expirationAt: activeEntitlement?.expirationDate,
@@ -308,6 +311,31 @@ final class RevenueCatManager: NSObject, ObservableObject {
             print("RevenueCat subscription snapshot sync failed: \(error.localizedDescription)")
 #endif
         }
+    }
+
+    private func paymentOption(forProductID productID: String?) -> String? {
+        guard let rawProductID = productID?.trimmingCharacters(in: .whitespacesAndNewlines), !rawProductID.isEmpty else {
+            return nil
+        }
+
+        if let package = packageByID.values.first(where: { $0.storeProduct.productIdentifier == rawProductID }) {
+            return paymentOption(for: package.packageType)
+        }
+
+        let normalized = rawProductID.lowercased()
+        if normalized.contains("annual") || normalized.contains("yearly") || normalized.contains("year") {
+            return "annual"
+        }
+        if normalized.contains("monthly") || normalized.contains("month") {
+            return "monthly"
+        }
+        if normalized.contains("weekly") || normalized.contains("week") {
+            return "weekly"
+        }
+        if normalized.contains("lifetime") || normalized.contains("life") {
+            return "lifetime"
+        }
+        return nil
     }
 }
 

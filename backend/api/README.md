@@ -33,6 +33,7 @@ Bootstrap profile completion:
   - `isProfileComplete` (boolean)
   - `profileCompletion.isComplete` (boolean)
   - `profileCompletion.missingRequiredFields` (array)
+- `POST /v1/payments/subscription/snapshot` and RevenueCat webhook sync also backfill `users/{uid}/profile/self.paymentOption` when it can be inferred.
 
 RevenueCat webhook auth:
 - Set `REVENUECAT_WEBHOOK_AUTH=<shared-secret>`.
@@ -84,6 +85,30 @@ export GOOGLE_CLOUD_PROJECT=unstoppable-app-dev
 python scripts/reset_user_profile.py --email your-email@example.com
 ```
 
+Inspect payment/subscription state and RevenueCat webhook events:
+
+```bash
+cd backend/api
+source .venv/bin/activate
+export GOOGLE_CLOUD_PROJECT=unstoppable-app-dev
+python scripts/check_user_payments.py --email your-email@example.com
+```
+
+Reset payment/subscription status (`users/{uid}/payments/*`) and clear `users/{uid}/profile/self.paymentOption`:
+
+```bash
+cd backend/api
+source .venv/bin/activate
+export GOOGLE_CLOUD_PROJECT=unstoppable-app-dev
+python scripts/reset_user_payments.py --email your-email@example.com
+```
+
+Optional: also clear RevenueCat webhook event docs for that user (`payments/revenuecat/events/*`):
+
+```bash
+python scripts/reset_user_payments.py --email your-email@example.com --clear-webhook-events
+```
+
 Reset full onboarding-related user data (`profile`, `routine`, `progress`, `stats`, `payments` subcollections):
 
 ```bash
@@ -97,5 +122,6 @@ Dry run:
 
 ```bash
 python scripts/reset_user_profile.py --email your-email@example.com --dry-run
+python scripts/reset_user_payments.py --email your-email@example.com --dry-run
 python scripts/reset_user_onboarding.py --email your-email@example.com --dry-run
 ```

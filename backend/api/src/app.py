@@ -109,6 +109,44 @@ def _non_empty_string(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def _coerce_payment_option(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().lower()
+    if not normalized:
+        return None
+
+    aliases = {
+        "annual": "annual",
+        "yearly": "annual",
+        "year": "annual",
+        "monthly": "monthly",
+        "month": "monthly",
+        "weekly": "weekly",
+        "week": "weekly",
+        "lifetime": "lifetime",
+        "life": "lifetime",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def _coerce_payment_option_from_product_id(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    product_id = value.strip().lower()
+    if not product_id:
+        return None
+    if "annual" in product_id or "yearly" in product_id or "year" in product_id:
+        return "annual"
+    if "monthly" in product_id or "month" in product_id:
+        return "monthly"
+    if "weekly" in product_id or "week" in product_id:
+        return "weekly"
+    if "lifetime" in product_id or "life" in product_id:
+        return "lifetime"
+    return None
+
+
 def _profile_completion(profile: dict[str, Any]) -> tuple[bool, list[str]]:
     missing: list[str] = []
 
@@ -289,6 +327,12 @@ def upsert_user_profile() -> tuple[Any, int]:
         "paymentOption",
     }
     profile_data = {k: payload[k] for k in allowed_fields if k in payload}
+    if "paymentOption" in profile_data:
+        normalized_payment_option = _coerce_payment_option(profile_data["paymentOption"])
+        if normalized_payment_option:
+            profile_data["paymentOption"] = normalized_payment_option
+        else:
+            profile_data.pop("paymentOption", None)
     profile_data["updatedAt"] = firestore.SERVER_TIMESTAMP
 
     db = _get_db()
@@ -449,6 +493,7 @@ def upsert_subscription_snapshot() -> tuple[Any, int]:
         "entitlementIds",
         "isActive",
         "productId",
+        "paymentOption",
         "store",
         "periodType",
         "expirationAt",
@@ -469,6 +514,14 @@ def upsert_subscription_snapshot() -> tuple[Any, int]:
         if parsed is not None:
             snapshot["gracePeriodExpiresAt"] = parsed
 
+    normalized_payment_option = _coerce_payment_option(snapshot.get("paymentOption"))
+    if normalized_payment_option is None:
+        normalized_payment_option = _coerce_payment_option_from_product_id(snapshot.get("productId"))
+    if normalized_payment_option:
+        snapshot["paymentOption"] = normalized_payment_option
+    else:
+        snapshot.pop("paymentOption", None)
+
     db = _get_db()
     (
         db.collection("users")
@@ -477,6 +530,20 @@ def upsert_subscription_snapshot() -> tuple[Any, int]:
         .document("subscription")
         .set(snapshot, merge=True)
     )
+    if normalized_payment_option:
+        (
+            db.collection("users")
+            .document(user_id)
+            .collection("profile")
+            .document("self")
+            .set(
+                {
+                    "paymentOption": normalized_payment_option,
+                    "updatedAt": firestore.SERVER_TIMESTAMP,
+                },
+                merge=True,
+            )
+        )
     return jsonify({"ok": True, "userId": user_id}), 200
 
 
@@ -517,6 +584,11 @@ def revenuecat_webhook() -> tuple[Any, int]:
     product_id = str(event.get("product_id", "")).strip()
     store = str(event.get("store", "")).strip()
     period_type = str(event.get("period_type", "")).strip()
+    payment_option = (
+        _coerce_payment_option(event.get("payment_option"))
+        or _coerce_payment_option(event.get("product_id"))
+        or _coerce_payment_option_from_product_id(product_id)
+    )
 
     expiration_at = _parse_event_datetime(event, "expiration_at_ms", "expiration_at")
     grace_period_expires_at = _parse_event_datetime(
@@ -580,6 +652,7 @@ def revenuecat_webhook() -> tuple[Any, int]:
         "entitlementIds": entitlement_ids,
         "isActive": is_active,
         "productId": product_id,
+        "paymentOption": payment_option,
         "store": store,
         "periodType": period_type,
         "expirationAt": expiration_at,
@@ -591,6 +664,20 @@ def revenuecat_webhook() -> tuple[Any, int]:
         "updatedAt": firestore.SERVER_TIMESTAMP,
     }
     subscription_ref.set(normalized, merge=True)
+    if payment_option:
+        (
+            db.collection("users")
+            .document(canonical_app_user_id)
+            .collection("profile")
+            .document("self")
+            .set(
+                {
+                    "paymentOption": payment_option,
+                    "updatedAt": firestore.SERVER_TIMESTAMP,
+                },
+                merge=True,
+            )
+        )
 
     return jsonify({"ok": True, "eventId": event_id}), 200
 
