@@ -46,6 +46,15 @@ export REVENUECAT_WEBHOOK_AUTH=dev-webhook-secret
 python src/app.py
 ```
 
+Poetry (Python 3.12):
+
+```bash
+cd backend/api
+poetry env use python3.12
+poetry install
+poetry run python src/app.py
+```
+
 ## Deploy to Cloud Run
 
 ```bash
@@ -57,4 +66,31 @@ Optional unauthenticated deploy for quick smoke tests:
 
 ```bash
 ALLOW_UNAUTHENTICATED=1 backend/api/deploy_cloud_run.sh unstoppable-app-dev
+```
+
+## User Reset Scripts
+
+Reset only profile data (`users/{uid}/profile/self`):
+
+```bash
+cd backend/api
+source .venv/bin/activate
+export GOOGLE_CLOUD_PROJECT=unstoppable-app-dev
+python scripts/reset_user_profile.py --email your-email@example.com
+```
+
+Reset full onboarding-related user data (`profile`, `routine`, `progress`, `stats`, `payments` subcollections):
+
+```bash
+cd backend/api
+source .venv/bin/activate
+export GOOGLE_CLOUD_PROJECT=unstoppable-app-dev
+python scripts/reset_user_onboarding.py --email your-email@example.com
+```
+
+Dry run:
+
+```bash
+python scripts/reset_user_profile.py --email your-email@example.com --dry-run
+python scripts/reset_user_onboarding.py --email your-email@example.com --dry-run
 ```
