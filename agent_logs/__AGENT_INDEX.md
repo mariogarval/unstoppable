@@ -45,7 +45,7 @@
 
 **Next Steps**: Complete sandbox purchase matrix and deployed webhook validation.
 
-**Related**: `Unstoppable/codex_logs/REVENUECAT_PHASE1_20260212.md` (app phase), `Unstoppable/codex_logs/REVENUECAT_PHASE2_20260212.md` (sync phase), `backend/codex_logs/REVENUECAT_BACKEND_PHASE3_20260212.md` (backend phase)
+**Related**: `Unstoppable/agent_logs/REVENUECAT_PHASE1_20260212.md` (app phase), `Unstoppable/agent_logs/REVENUECAT_PHASE2_20260212.md` (sync phase), `backend/agent_logs/REVENUECAT_BACKEND_PHASE3_20260212.md` (backend phase)
 
 ---
 
@@ -66,7 +66,7 @@
 
 **Next Steps**: Run manual in-app Google Sign-In and paywall purchase/restore validation.
 
-**Related**: `Unstoppable/codex_logs/BUNDLE_ID_MIGRATION_20260217.md` (migration session detail)
+**Related**: `Unstoppable/agent_logs/BUNDLE_ID_MIGRATION_20260217.md` (migration session detail)
 
 ---
 

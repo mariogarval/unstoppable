@@ -129,7 +129,7 @@ rg -n "@app\\.(get|post|put)\\(\"/v1/(payments|user/subscription|bootstrap)" bac
 ## Related Documents
 
 - `PAYMENTS_PLAN.md` - reusable implementation runbook and phased checklist.
-- `Unstoppable/codex_logs/REVENUECAT_PHASE1_20260212.md` - app integration phase log.
-- `Unstoppable/codex_logs/REVENUECAT_PHASE2_20260212.md` - app/backend snapshot sync phase log.
-- `backend/codex_logs/REVENUECAT_BACKEND_PHASE3_20260212.md` - backend webhook/state phase log.
-- `Unstoppable/codex_logs/REVENUECAT_APP_SIDE_FLAG_20260213.md` - app-only feature flag decision log.
+- `Unstoppable/agent_logs/REVENUECAT_PHASE1_20260212.md` - app integration phase log.
+- `Unstoppable/agent_logs/REVENUECAT_PHASE2_20260212.md` - app/backend snapshot sync phase log.
+- `backend/agent_logs/REVENUECAT_BACKEND_PHASE3_20260212.md` - backend webhook/state phase log.
+- `Unstoppable/agent_logs/REVENUECAT_APP_SIDE_FLAG_20260213.md` - app-only feature flag decision log.
