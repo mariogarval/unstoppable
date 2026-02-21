@@ -17,10 +17,17 @@ Cloud Run service implemented with `Flask` + `firebase-admin` (Firestore).
 
 Production:
 - Send `Authorization: Bearer <Firebase ID token>`.
+- Backend resolves a canonical user record by verified token email (`user_email_aliases`), so Google/Apple sign-ins with the same verified email map to one Firestore user profile/routine/progress entry.
 
 Local development fallback:
 - Set `ALLOW_DEV_USER_HEADER=1`.
 - Send `X-User-Id: some-user-id`.
+
+Bootstrap profile completion:
+- `GET /v1/bootstrap` now includes:
+  - `isProfileComplete` (boolean)
+  - `profileCompletion.isComplete` (boolean)
+  - `profileCompletion.missingRequiredFields` (array)
 
 RevenueCat webhook auth:
 - Set `REVENUECAT_WEBHOOK_AUTH=<shared-secret>`.

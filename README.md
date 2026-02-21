@@ -18,6 +18,8 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Googl
 - On launch, app attempts session restore from `FirebaseAuth.currentUser` and reconfigures API auth mode.
 - On successful Apple/Google sign-in, API auth switches to `Authorization: Bearer <Firebase ID token>` via `bearerTokenProvider`.
 - Account-link behavior is email-based: if Apple collides with an existing Google account, users are prompted to sign in with Google first and then link Apple.
+- Backend canonicalizes authenticated users by verified token email so Google/Apple sign-ins with the same email write to the same Firestore user record.
+- Post-auth routing uses backend profile completion (`isProfileComplete`) so users with incomplete profile data are sent through onboarding instead of landing in `HomeView`.
 - Settings includes a functional `Sign Out` action in `Unstoppable/HomeView.swift` and routes back to `WelcomeView`.
 - If bundle ID changes, regenerate Firebase iOS config (`GoogleService-Info.plist`) for the new app and re-check `CFBundleURLSchemes` (Google reversed client ID) in `Unstoppable/Info.plist`.
 
@@ -128,7 +130,7 @@ Sync behavior:
 - `POST /v1/progress/daily`
   - Accepts `date` (`yyyy-MM-dd`), `completed`, `total`, `completedTaskIds`.
 - `GET /v1/bootstrap`
-  - Returns: `userId`, `profile`, `routine`, `streak`, `progress.today`, and `subscription`.
+  - Returns: `userId`, `profile`, `isProfileComplete`, `profileCompletion`, `routine`, `streak`, `progress.today`, and `subscription`.
 - `GET /v1/user/subscription`
   - Returns latest normalized subscription snapshot for current authenticated user.
 - `POST /v1/payments/subscription/snapshot`

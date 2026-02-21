@@ -277,7 +277,7 @@ struct WelcomeView: View {
         navigateHome = false
         navigateNickname = false
 
-        if isOnboarded(bootstrap) {
+        if isProfileComplete(bootstrap) {
             navigateHome = true
             return
         }
@@ -285,20 +285,37 @@ struct WelcomeView: View {
         navigateNickname = true
     }
 
-    private func isOnboarded(_ bootstrap: BootstrapResponse?) -> Bool {
-        guard let paymentOption = profileString("paymentOption", from: bootstrap) else {
+    private func isProfileComplete(_ bootstrap: BootstrapResponse?) -> Bool {
+        guard let bootstrap else {
             return false
         }
 
-        return !paymentOption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if let explicit = bootstrap.isProfileComplete {
+            return explicit
+        }
+        if let explicitFromObject = bootstrap.profileCompletion?.isComplete {
+            return explicitFromObject
+        }
+
+        let hasNickname = hasProfileString("nickname", from: bootstrap)
+        let hasNotificationsSelection = profileBool("notificationsEnabled", from: bootstrap) != nil
+        let termsAccepted = profileBool("termsAccepted", from: bootstrap) == true
+        let over16Accepted = profileBool("termsOver16Accepted", from: bootstrap) == true
+        let hasPaymentOption = hasProfileString("paymentOption", from: bootstrap)
+
+        return hasNickname && hasNotificationsSelection && termsAccepted && over16Accepted && hasPaymentOption
     }
 
-    private func profileString(_ key: String, from bootstrap: BootstrapResponse?) -> String? {
-        guard let value = bootstrap?.profile[key] else { return nil }
-        if case .string(let str) = value {
-            return str
-        }
-        return nil
+    private func hasProfileString(_ key: String, from bootstrap: BootstrapResponse) -> Bool {
+        guard let value = bootstrap.profile[key] else { return false }
+        guard case .string(let str) = value else { return false }
+        return !str.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func profileBool(_ key: String, from bootstrap: BootstrapResponse) -> Bool? {
+        guard let value = bootstrap.profile[key] else { return nil }
+        guard case .bool(let boolValue) = value else { return nil }
+        return boolValue
     }
 }
 

@@ -71,9 +71,16 @@ struct SubscriptionSnapshotUpsertRequest: Codable, Sendable {
 struct BootstrapResponse: Codable, Sendable {
     let userId: String
     let profile: [String: JSONValue]
+    let isProfileComplete: Bool?
+    let profileCompletion: BootstrapProfileCompletion?
     let routine: [String: JSONValue]
     let streak: [String: JSONValue]
     let progress: BootstrapProgress
+}
+
+struct BootstrapProfileCompletion: Codable, Sendable {
+    let isComplete: Bool
+    let missingRequiredFields: [String]
 }
 
 struct BootstrapProgress: Codable, Sendable {
