@@ -1,6 +1,7 @@
 // Default empty value for repo-safe builds.
 REVENUECAT_IOS_API_KEY =
 REVENUECAT_ENABLE_BACKEND_SYNC = NO
+REVENUECAT_FAKE_SUBSCRIPTION_MODE = off
 REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON = NO
 
 // Local overrides (gitignored).

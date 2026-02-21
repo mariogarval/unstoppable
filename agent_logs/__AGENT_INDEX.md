@@ -3,7 +3,30 @@
 **Last Updated**: 2026-02-21
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 7 markdown documents
+**Files**: 8 markdown documents
+
+---
+
+## February 21, 2026 - Fake Subscription Mode + Canonical paymentOption
+
+### PAYMENTS_FAKE_SUBSCRIPTION_AND_CANONICAL_PAYMENT_OPTION_20260221.md ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-21 | **Status**: Implementation Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**This document captures implementation of debug fake-subscription mode in the iOS app and canonical `paymentOption` ownership in backend subscription documents.**
+
+**Problem Solved**: Unblocked payments API validation while live RevenueCat offerings remain unstable, and removed `paymentOption` ownership ambiguity by making subscription docs canonical with profile mirroring for onboarding compatibility.
+
+**Key Results**:
+- Added `REVENUECAT_FAKE_SUBSCRIPTION_MODE` (`off|active|inactive`) with deterministic fake offerings and snapshot sync behavior in `Unstoppable/Payments/RevenueCatManager.swift`.
+- Updated backend `POST /v1/user/profile` and bootstrap completion logic so `users/{uid}/payments/subscription.paymentOption` is canonical and profile remains a mirror.
+- Added migration utility `backend/api/scripts/migrate_payment_option_to_subscription.py` with dry-run/apply modes.
+- Updated docs/runbooks across `README.md`, `backend/api/README.md`, and `backend/api/API_RUNBOOK.md`.
+- Verified with `python3 -m py_compile`, `xcodebuild`, and `./scripts/run_ios_sim.sh "iPhone 17 Pro"`.
+
+**Next Steps**: Run migration script in dry-run and apply modes against target users, then validate payload parity in Firestore using fake `active` and `inactive` modes.
+
+**Related**: `agent_logs/REVENUECAT_OFFERINGS_BLOCKER_AND_PAYWALL_RETRY_20260221.md` (offerings blocker context)
 
 ---
 
@@ -158,6 +181,7 @@
 
 | Topic | Location |
 |-------|----------|
+| Fake subscription mode + canonical paymentOption ownership | `agent_logs/PAYMENTS_FAKE_SUBSCRIPTION_AND_CANONICAL_PAYMENT_OPTION_20260221.md` |
 | RevenueCat offerings blocker + paywall retry hardening | `agent_logs/REVENUECAT_OFFERINGS_BLOCKER_AND_PAYWALL_RETRY_20260221.md` |
 | Auth/bootstrap/profile troubleshooting hardening | `agent_logs/AUTH_BOOTSTRAP_PROFILE_SYNC_HARDENING_20260221.md` |
 | Apple auth Firebase rollout status | `agent_logs/APPLE_AUTH_FIREBASE_ROLLOUT_20260221.md` |

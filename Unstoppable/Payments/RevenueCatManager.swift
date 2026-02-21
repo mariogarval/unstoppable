@@ -42,6 +42,7 @@ final class RevenueCatManager: NSObject, ObservableObject {
     private let entitlementID = "premium"
     private let apiKeyInfoKey = "REVENUECAT_IOS_API_KEY"
     private let backendSyncEnabledInfoKey = "REVENUECAT_ENABLE_BACKEND_SYNC"
+
     private var packageByID: [String: Package] = [:]
     private lazy var isBackendSyncEnabled = configuredBackendSyncEnabled()
 
@@ -100,10 +101,10 @@ final class RevenueCatManager: NSObject, ObservableObject {
     }
 
     func logIn(appUserID: String) async {
-        guard ensureConfigured() else { return }
         let trimmedID = appUserID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedID.isEmpty else { return }
 
+        guard ensureConfigured() else { return }
         do {
             let (customerInfo, _) = try await Purchases.shared.logIn(trimmedID)
             apply(customerInfo: customerInfo)

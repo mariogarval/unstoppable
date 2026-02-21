@@ -174,7 +174,13 @@ Backend-required fields:
 - `termsOver16Accepted` (`true`)
 - `paymentOption` (non-empty string)
 
-`paymentOption` is typically written by paywall profile sync, and is now also backfilled by payment snapshot/webhook sync when inferred from product metadata.
+`paymentOption` resolution for completion is:
+- primary: `users/{uid}/payments/subscription.paymentOption`
+- fallback: `users/{uid}/profile/self.paymentOption`
+
+Write paths:
+- `POST /v1/user/profile` writes both canonical subscription and profile mirror.
+- `POST /v1/payments/subscription/snapshot` and RevenueCat webhook writes canonical subscription and backfills profile mirror when possible.
 
 If any are missing, backend returns:
 - `isProfileComplete = false`
@@ -229,6 +235,13 @@ python scripts/reset_user_payments.py --email your-email@example.com --dry-run
 python scripts/reset_user_onboarding.py --email your-email@example.com --dry-run
 ```
 
+Backfill canonical `paymentOption` from profile data:
+```bash
+cd backend/api
+python scripts/migrate_payment_option_to_subscription.py --all
+python scripts/migrate_payment_option_to_subscription.py --all --apply
+```
+
 Recommended verification after reset:
 1. Sign in with Google and complete onboarding.
 2. Sign out.
@@ -270,3 +283,4 @@ You are in a healthy state when all are true:
 3. Post sign-in `GET /v1/bootstrap` succeeds and no fallback error message appears.
 4. Profile writes are visible at `users/{canonical_uid}/profile/self`.
 5. Same-email Google and Apple logins resolve to one canonical user profile.
+6. `paymentOption` is present in `users/{canonical_uid}/payments/subscription` (profile mirror may also exist).

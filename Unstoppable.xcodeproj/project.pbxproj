@@ -37,6 +37,9 @@
 		C0A100071111111111111111 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C0A500021111111111111111 /* GoogleSignIn */; };
 		C0A100081111111111111111 /* RevenueCatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A200051111111111111111 /* RevenueCatManager.swift */; };
 		C0A100091111111111111111 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C0A500031111111111111111 /* RevenueCat */; };
+		C0A1000A1111111111111111 /* FakePaymentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A200081111111111111111 /* FakePaymentManager.swift */; };
+		C0A1000B1111111111111111 /* PaymentRuntimeMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A200091111111111111111 /* PaymentRuntimeMode.swift */; };
+		C0A1000C1111111111111111 /* FakePaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A2000A1111111111111111 /* FakePaywallView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +73,9 @@
 		C0A200051111111111111111 /* RevenueCatManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatManager.swift; sourceTree = "<group>"; };
 		C0A200061111111111111111 /* RevenueCat.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = RevenueCat.xcconfig; sourceTree = "<group>"; };
 		C0A200071111111111111111 /* Secrets.local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.local.xcconfig.example; sourceTree = "<group>"; };
+		C0A200081111111111111111 /* FakePaymentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakePaymentManager.swift; sourceTree = "<group>"; };
+		C0A200091111111111111111 /* PaymentRuntimeMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentRuntimeMode.swift; sourceTree = "<group>"; };
+		C0A2000A1111111111111111 /* FakePaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakePaywallView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +107,7 @@
 				A71B2E232A0B1C0C00F1A2B3 /* BeforeAfterView.swift */,
 				A71B2E252A0B1C0D00F1A2B3 /* TermsSheetView.swift */,
 				A71B2E272A0B1C0E00F1A2B3 /* PaywallView.swift */,
+				C0A2000A1111111111111111 /* FakePaywallView.swift */,
 				2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */,
 			);
 			path = onboarding;
@@ -174,6 +181,8 @@
 			isa = PBXGroup;
 			children = (
 				C0A200051111111111111111 /* RevenueCatManager.swift */,
+				C0A200081111111111111111 /* FakePaymentManager.swift */,
+				C0A200091111111111111111 /* PaymentRuntimeMode.swift */,
 			);
 			path = Payments;
 			sourceTree = "<group>";
@@ -273,6 +282,9 @@
 				C0A100021111111111111111 /* UserDataSyncService.swift in Sources */,
 				C0A100031111111111111111 /* AuthSessionManager.swift in Sources */,
 				C0A100081111111111111111 /* RevenueCatManager.swift in Sources */,
+				C0A1000A1111111111111111 /* FakePaymentManager.swift in Sources */,
+				C0A1000B1111111111111111 /* PaymentRuntimeMode.swift in Sources */,
+				C0A1000C1111111111111111 /* FakePaywallView.swift in Sources */,
 				A71B2E032A0B1C0000F1A2B3 /* ContentView.swift in Sources */,
 				A71B2E102A0B1C0200F1A2B3 /* WelcomeView.swift in Sources */,
 				A71B2E122A0B1C0300F1A2B3 /* NicknameView.swift in Sources */,

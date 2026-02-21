@@ -1,6 +1,28 @@
 import SwiftUI
 
+private enum PaywallRoutingMode {
+    case live
+    case fake
+
+    static var current: PaywallRoutingMode {
+        PaymentManagerRouter.currentRuntimeMode.isFake ? .fake : .live
+    }
+}
+
 struct PaywallView: View {
+    var body: some View {
+        Group {
+            switch PaywallRoutingMode.current {
+            case .live:
+                RevenueCatPaywallView()
+            case .fake:
+                FakePaywallView()
+            }
+        }
+    }
+}
+
+private struct RevenueCatPaywallView: View {
     @State private var selectedPlan: Plan = .annual
     @State private var selectedPackageID: String?
     @State private var navigateHome = false
@@ -375,7 +397,7 @@ struct PaywallView: View {
 
 // MARK: - Dismiss button
 
-private struct DismissButton: View {
+struct DismissButton: View {
     let onTap: () -> Void
 
     var body: some View {
@@ -484,7 +506,7 @@ private struct TimelineRow: View {
 
 // MARK: - Plan card
 
-private struct PlanCard: View {
+struct PlanCard: View {
     let title: String
     let price: String
     let detail: String

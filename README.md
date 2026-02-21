@@ -50,7 +50,12 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Googl
   - feature flag key: `REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON`
   - default: `NO`
   - set to `YES` in `Unstoppable/Config/Secrets.local.xcconfig` to show `Open Paywall (Test)` button in Settings.
-- Current paywall selection sync still posts `paymentOption` through `POST /v1/user/profile`.
+- Fake subscription mode for local/testing when live offerings are unavailable:
+  - feature flag key: `REVENUECAT_FAKE_SUBSCRIPTION_MODE`
+  - supported values: `off` (default), `active`, `inactive`
+  - in fake mode, `PaywallView` routes to a dedicated `FakePaywallView`, while normal mode keeps the RevenueCat-backed paywall.
+  - fake mode uses deterministic local plans and posts subscription snapshots to backend for API validation.
+- Paywall selection still posts `paymentOption` through `POST /v1/user/profile`, and backend now writes it canonically to `users/{uid}/payments/subscription.paymentOption` while mirroring profile for onboarding compatibility.
 - RevenueCat customer-info updates can sync subscription snapshot data to backend via `POST /v1/payments/subscription/snapshot` when `REVENUECAT_ENABLE_BACKEND_SYNC=YES` (default `NO` keeps payments app-side only).
 
 ## App Flow and Endpoint Calls
@@ -114,6 +119,7 @@ Build-time config keys (in project build settings / Info.plist injection):
 - `API_DEV_USER_ID`
 - `REVENUECAT_IOS_API_KEY`
 - `REVENUECAT_ENABLE_BACKEND_SYNC` (`NO` default, set `YES` to enable backend snapshot sync)
+- `REVENUECAT_FAKE_SUBSCRIPTION_MODE` (`off` default, `active`/`inactive` for debug fake-subscription testing)
 
 Current defaults:
 - Debug: supports dev auth (`X-User-Id`, default `dev-user-001`) and switches to bearer token auth after Apple/Google sign-in.
@@ -137,12 +143,16 @@ Sync behavior:
     - `nickname`, `ageGroup`, `gender`, `notificationsEnabled`
     - `termsAccepted`, `termsOver16Accepted`, `termsMarketingAccepted`
     - `paymentOption` (`annual`, `monthly`, `skip`, `dismiss`)
+  - `paymentOption` is written to:
+    - canonical: `users/{uid}/payments/subscription.paymentOption`
+    - mirror: `users/{uid}/profile/self.paymentOption`
 - `PUT /v1/routines/current`
   - Accepts `routineTime` (`HH:mm`) and full task snapshot.
 - `POST /v1/progress/daily`
   - Accepts `date` (`yyyy-MM-dd`), `completed`, `total`, `completedTaskIds`.
 - `GET /v1/bootstrap`
   - Returns: `userId`, `profile`, `isProfileComplete`, `profileCompletion`, `routine`, `streak`, `progress.today`, and `subscription`.
+  - Completion logic resolves `paymentOption` from subscription first, then profile fallback.
 - `GET /v1/user/subscription`
   - Returns latest normalized subscription snapshot for current authenticated user.
 - `POST /v1/payments/subscription/snapshot`

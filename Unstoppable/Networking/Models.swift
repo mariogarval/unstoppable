@@ -77,6 +77,7 @@ struct BootstrapResponse: Codable, Sendable {
     let routine: [String: JSONValue]
     let streak: [String: JSONValue]
     let progress: BootstrapProgress
+    let subscription: [String: JSONValue]?
 }
 
 struct BootstrapProfileCompletion: Codable, Sendable {

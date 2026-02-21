@@ -3,7 +3,28 @@
 **Last Updated**: 2026-02-21
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 7 markdown documents
+**Files**: 8 markdown documents
+
+---
+
+## February 21, 2026 - Fake Manager Separation
+
+### `FAKE_PAYMENT_MANAGER_SPLIT_20260221.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-21 | **Status**: Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**Split fake payment behavior out of `RevenueCatManager` into a dedicated manager with runtime routing.**
+
+**Problem Solved**: Removed mixed live/fake concerns from `RevenueCatManager` and made mode-driven manager selection explicit for app init, auth lifecycle, and paywall rendering.
+
+**Key Results**:
+- Added `FakePaymentManager` and `PaymentRuntimeMode`/`PaymentManagerRouter` for clean runtime selection.
+- Updated app/auth/paywall call sites to use routed manager behavior; fake paywall now uses `FakePaymentManager.shared`.
+- Revalidated via `xcodebuild` and `./scripts/run_ios_sim.sh \"iPhone 17 Pro\"`.
+
+**Next Steps**: When RevenueCat offerings are stable, keep `REVENUECAT_FAKE_SUBSCRIPTION_MODE=off` and retain fake manager for deterministic API/testing scenarios.
+
+**Related**: `PAYMENTS_FAKE_SUBSCRIPTION_AND_CANONICAL_PAYMENT_OPTION_20260221.md` (broader fake mode + backend canonicalization)
 
 ---
 
@@ -151,6 +172,7 @@
 
 | Topic | Location |
 |-------|----------|
+| Fake manager split | `FAKE_PAYMENT_MANAGER_SPLIT_20260221.md` |
 | Profile completion routing | `PROFILE_COMPLETION_ROUTING_20260221.md` |
 | Bundle ID alignment | `BUNDLE_ID_MIGRATION_20260217.md` |
 | RevenueCat app-side default | `REVENUECAT_APP_SIDE_FLAG_20260213.md` |

@@ -147,7 +147,19 @@ def _coerce_payment_option_from_product_id(value: Any) -> str | None:
     return None
 
 
-def _profile_completion(profile: dict[str, Any]) -> tuple[bool, list[str]]:
+def _effective_payment_option(
+    profile: dict[str, Any], subscription: dict[str, Any] | None = None
+) -> str | None:
+    subscription_data = subscription if isinstance(subscription, dict) else {}
+    from_subscription = _coerce_payment_option(subscription_data.get("paymentOption"))
+    if from_subscription:
+        return from_subscription
+    return _coerce_payment_option(profile.get("paymentOption"))
+
+
+def _profile_completion(
+    profile: dict[str, Any], subscription: dict[str, Any] | None = None
+) -> tuple[bool, list[str]]:
     missing: list[str] = []
 
     if not _non_empty_string(profile.get("nickname")):
@@ -158,7 +170,7 @@ def _profile_completion(profile: dict[str, Any]) -> tuple[bool, list[str]]:
         missing.append("termsAccepted")
     if profile.get("termsOver16Accepted") is not True:
         missing.append("termsOver16Accepted")
-    if not _non_empty_string(profile.get("paymentOption")):
+    if not _effective_payment_option(profile, subscription):
         missing.append("paymentOption")
 
     return len(missing) == 0, missing
@@ -327,6 +339,7 @@ def upsert_user_profile() -> tuple[Any, int]:
         "paymentOption",
     }
     profile_data = {k: payload[k] for k in allowed_fields if k in payload}
+    normalized_payment_option: str | None = None
     if "paymentOption" in profile_data:
         normalized_payment_option = _coerce_payment_option(profile_data["paymentOption"])
         if normalized_payment_option:
@@ -343,6 +356,22 @@ def upsert_user_profile() -> tuple[Any, int]:
         .document("self")
     )
     profile_ref.set(profile_data, merge=True)
+    if normalized_payment_option:
+        (
+            db.collection("users")
+            .document(user_id)
+            .collection("payments")
+            .document("subscription")
+            .set(
+                {
+                    "paymentOption": normalized_payment_option,
+                    "provider": "profile_sync",
+                    "source": "profile_payment_option",
+                    "updatedAt": firestore.SERVER_TIMESTAMP,
+                },
+                merge=True,
+            )
+        )
 
     return jsonify({"ok": True, "userId": user_id}), 200
 
@@ -435,7 +464,8 @@ def get_bootstrap() -> tuple[Any, int]:
     today_doc = user_ref.collection("progress").document(_today_yyyy_mm_dd()).get()
     subscription_doc = user_ref.collection("payments").document("subscription").get()
     profile_data = profile_doc.to_dict() if profile_doc.exists else {}
-    profile_complete, missing_profile_fields = _profile_completion(profile_data)
+    subscription_data = subscription_doc.to_dict() if subscription_doc.exists else {}
+    profile_complete, missing_profile_fields = _profile_completion(profile_data, subscription_data)
 
     response = {
         "userId": user_id,
@@ -450,7 +480,7 @@ def get_bootstrap() -> tuple[Any, int]:
         "progress": {
             "today": _json_safe(today_doc.to_dict() if today_doc.exists else {}),
         },
-        "subscription": _json_safe(subscription_doc.to_dict() if subscription_doc.exists else {}),
+        "subscription": _json_safe(subscription_data),
     }
     return jsonify(response), 200
 
