@@ -3,7 +3,28 @@
 **Last Updated**: 2026-02-21
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 4 markdown documents
+**Files**: 5 markdown documents
+
+---
+
+## February 21, 2026 - Apple Auth Firebase Rollout
+
+### APPLE_AUTH_FIREBASE_ROLLOUT_20260221.md 🔄 IN PROGRESS
+**Date**: 2026-02-21 | **Status**: In Progress
+**Branch**: `codex/apple-auth-firebase`
+
+**This document tracks implementation and validation progress for Sign in with Apple using Firebase Auth in the iOS app.**
+
+**Problem Solved**: Completed Apple sign-in code wiring and Firebase credential flow so the existing Apple button in `WelcomeView` is functional and aligned with current bearer-token auth architecture.
+
+**Key Results**:
+- Implemented nonce-based Apple sign-in, Firebase credential exchange, and email-based collision handling with Google accounts.
+- Verified simulator builds and scripted app launch after auth changes.
+- Updated runbooks/docs (`APPLE_AUTH_PLAN.md`, `README.md`, `GOOGLE_AUTH_PLAN.md`) to reflect Apple auth rollout state.
+
+**Next Steps**: Complete manual runtime matrix (AA-31) and backend bearer-token verification (AA-32), then finalize App Store parity checklist (AA-40).
+
+**Related**: `APPLE_AUTH_PLAN.md` (active implementation runbook), `GOOGLE_AUTH_PLAN.md` (existing Google auth runbook)
 
 ---
 
@@ -93,6 +114,7 @@
 
 | Topic | Location |
 |-------|----------|
+| Apple auth Firebase rollout status | `agent_logs/APPLE_AUTH_FIREBASE_ROLLOUT_20260221.md` |
 | RevenueCat rollout status | `agent_logs/REVENUECAT_PAYMENTS_ROLLOUT_STATUS_20260217.md` |
 | Bundle ID and Firebase callback alignment | `agent_logs/GOOGLE_SIGNIN_BUNDLE_ID_ALIGNMENT_20260217.md` |
 | RevenueCat implementation runbook creation | `agent_logs/PAYMENTS_PLAN_20260213.md` |
