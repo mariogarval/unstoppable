@@ -2,6 +2,10 @@
 
 This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Google sign-in, and background sync to a Python API on Google Cloud Run.
 
+## Runbooks
+
+- API/Auth troubleshooting: `backend/api/API_RUNBOOK.md`
+
 ## Current Backend Status
 
 - GCP project: `unstoppable-app-dev`

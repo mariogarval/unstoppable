@@ -2,6 +2,11 @@
 
 Cloud Run service implemented with `Flask` + `firebase-admin` (Firestore).
 
+## Troubleshooting
+
+Detailed backend + app auth troubleshooting runbook:
+- `backend/api/API_RUNBOOK.md`
+
 ## Endpoints
 
 - `POST /v1/user/profile`

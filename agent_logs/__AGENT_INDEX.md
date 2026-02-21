@@ -3,7 +3,28 @@
 **Last Updated**: 2026-02-21
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 5 markdown documents
+**Files**: 6 markdown documents
+
+---
+
+## February 21, 2026 - Auth and Onboarding Troubleshooting Hardening
+
+### AUTH_BOOTSTRAP_PROFILE_SYNC_HARDENING_20260221.md ✅ COMPLETE
+**Date**: 2026-02-21 | **Status**: Complete
+**Branch**: `codex/apple-auth-firebase`
+
+**This document captures the end-to-end stabilization pass for Firebase auth bootstrap, Cloud Run deployment auth settings, onboarding profile persistence, and reset tooling.**
+
+**Problem Solved**: Eliminated partial-sign-in behavior where authentication succeeded but account bootstrap/profile persistence failed, producing inconsistent onboarding and Firestore state.
+
+**Key Results**:
+- Added backend auth bootstrap runbook: `backend/api/API_RUNBOOK.md`.
+- Confirmed and documented backend fixes for Firebase token verification init, canonical user mapping, and profile completion routing.
+- Added reusable reset scripts and Poetry project metadata under `backend/api` for deterministic retesting.
+
+**Next Steps**: Re-run the Google -> Apple same-email matrix after any future auth/deploy configuration changes to ensure canonical identity continuity remains intact.
+
+**Related**: `backend/agent_logs/IDENTITY_CANONICALIZATION_PROFILE_COMPLETION_20260221.md` (backend canonical identity implementation), `Unstoppable/agent_logs/PROFILE_COMPLETION_ROUTING_20260221.md` (app routing consumer)
 
 ---
 
@@ -114,6 +135,7 @@
 
 | Topic | Location |
 |-------|----------|
+| Auth/bootstrap/profile troubleshooting hardening | `agent_logs/AUTH_BOOTSTRAP_PROFILE_SYNC_HARDENING_20260221.md` |
 | Apple auth Firebase rollout status | `agent_logs/APPLE_AUTH_FIREBASE_ROLLOUT_20260221.md` |
 | RevenueCat rollout status | `agent_logs/REVENUECAT_PAYMENTS_ROLLOUT_STATUS_20260217.md` |
 | Bundle ID and Firebase callback alignment | `agent_logs/GOOGLE_SIGNIN_BUNDLE_ID_ALIGNMENT_20260217.md` |
