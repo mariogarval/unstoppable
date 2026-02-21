@@ -139,7 +139,26 @@ final class RevenueCatManager: NSObject, ObservableObject {
 
         do {
             let offerings = try await Purchases.shared.offerings()
-            let availablePackages = offerings.current?.availablePackages ?? []
+            guard let currentOffering = offerings.current else {
+                packages = []
+                packageByID = [:]
+                lastErrorMessage = "No current RevenueCat offering is configured. Set one as Current in the RevenueCat dashboard."
+#if DEBUG
+                print("RevenueCat offerings loaded but current offering is nil. Offerings: \(offerings.all.keys.sorted())")
+#endif
+                return
+            }
+
+            let availablePackages = currentOffering.availablePackages
+            if availablePackages.isEmpty {
+                packages = []
+                packageByID = [:]
+                lastErrorMessage = "RevenueCat offering has no packages. Attach monthly/yearly products to the Current offering."
+#if DEBUG
+                print("RevenueCat current offering has no packages. Offering id: \(currentOffering.identifier)")
+#endif
+                return
+            }
 
             packageByID = Dictionary(uniqueKeysWithValues: availablePackages.map { ($0.identifier, $0) })
             packages = availablePackages.map(makePaywallPackage(from:))

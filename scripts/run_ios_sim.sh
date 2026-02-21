@@ -14,6 +14,8 @@ Optional env vars:
   CONFIGURATION=Debug
   DERIVED_DATA_PATH=/path/to/.build
   OPEN_SIMULATOR_APP=1
+  STOREKIT_MODE=auto   # auto|required|off
+  STOREKIT_CONFIG_PATH=/absolute/or/project-relative/path/to.storekit
 EOF
 }
 
@@ -31,11 +33,146 @@ SCHEME="${SCHEME:-Unstoppable}"
 CONFIGURATION="${CONFIGURATION:-Debug}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$ROOT_DIR/.build}"
 OPEN_SIMULATOR_APP="${OPEN_SIMULATOR_APP:-1}"
+STOREKIT_MODE="${STOREKIT_MODE:-auto}"
+STOREKIT_CONFIG_PATH="${STOREKIT_CONFIG_PATH:-}"
+
+case "$STOREKIT_MODE" in
+  auto|required|off) ;;
+  *)
+    echo "Invalid STOREKIT_MODE: $STOREKIT_MODE (expected: auto|required|off)" >&2
+    exit 1
+    ;;
+esac
 
 if [[ ! -d "$PROJECT_PATH" ]]; then
   echo "Project not found: $PROJECT_PATH" >&2
   exit 1
 fi
+
+normalize_path() {
+  local raw="$1"
+  if [[ -z "$raw" ]]; then
+    return 1
+  fi
+  if [[ "$raw" = /* ]]; then
+    printf '%s' "$raw"
+  else
+    printf '%s' "$ROOT_DIR/$raw"
+  fi
+}
+
+resolve_scheme_storekit_config() {
+  local scheme_path="$ROOT_DIR/Unstoppable.xcodeproj/xcshareddata/xcschemes/${SCHEME}.xcscheme"
+  if [[ ! -f "$scheme_path" ]]; then
+    return 1
+  fi
+
+  local identifier=""
+  identifier="$(awk '
+    /StoreKitConfigurationFileReference/ { in_node=1 }
+    in_node && /identifier = "/ {
+      if (match($0, /identifier = "[^"]+"/)) {
+        val=substr($0, RSTART, RLENGTH)
+        gsub(/^identifier = "/, "", val)
+        gsub(/"$/, "", val)
+        print val
+        exit
+      }
+    }
+    in_node && /<\/StoreKitConfigurationFileReference>/ { in_node=0 }
+  ' "$scheme_path")"
+  if [[ -z "$identifier" ]]; then
+    return 1
+  fi
+
+  if [[ "$identifier" = /* ]]; then
+    printf '%s' "$identifier"
+    return 0
+  fi
+
+  # Xcode stores this relative to the .xcodeproj directory.
+  local project_dir
+  project_dir="$(cd "$(dirname "$(dirname "$(dirname "$scheme_path")")")" && pwd)"
+  local from_project_dir="$project_dir/$identifier"
+  if [[ -f "$from_project_dir" ]]; then
+    printf '%s' "$from_project_dir"
+    return 0
+  fi
+
+  # Some setups may store it relative to the .xcscheme location.
+  local scheme_dir
+  scheme_dir="$(cd "$(dirname "$scheme_path")" && pwd)"
+  local from_scheme_dir="$scheme_dir/$identifier"
+  if [[ -f "$from_scheme_dir" ]]; then
+    printf '%s' "$from_scheme_dir"
+    return 0
+  fi
+
+  # Fallback for repo-root-relative paths.
+  local from_root="$ROOT_DIR/$identifier"
+  if [[ -f "$from_root" ]]; then
+    printf '%s' "$from_root"
+    return 0
+  fi
+
+  # Return project-relative candidate for diagnostics.
+  printf '%s' "$from_project_dir"
+}
+
+print_storekit_status() {
+  local explicit_path="$1"
+  local scheme_path="$2"
+  local active_path="$3"
+
+  if [[ "$STOREKIT_MODE" == "off" ]]; then
+    echo "StoreKit mode: off"
+    return 0
+  fi
+
+  if [[ -n "$scheme_path" && -f "$scheme_path" ]]; then
+    echo "StoreKit config (scheme): $scheme_path"
+  elif [[ -n "$scheme_path" ]]; then
+    echo "StoreKit config (scheme): $scheme_path (missing)"
+  else
+    echo "StoreKit config (scheme): not set in ${SCHEME}.xcscheme"
+  fi
+
+  if [[ -n "$explicit_path" ]]; then
+    if [[ -f "$explicit_path" ]]; then
+      echo "StoreKit config (override): $explicit_path"
+    else
+      echo "StoreKit config (override): $explicit_path (missing)"
+    fi
+  fi
+
+  if [[ -n "$active_path" ]]; then
+    echo "StoreKit mode: $STOREKIT_MODE (active config: $active_path)"
+  else
+    echo "StoreKit mode: $STOREKIT_MODE (no active config)"
+  fi
+
+  if [[ "$STOREKIT_MODE" != "off" ]]; then
+    echo "Note: simctl launch cannot force StoreKit config on this Xcode CLI."
+    echo "For guaranteed local StoreKit behavior, run the app from Xcode with the scheme StoreKit config enabled."
+  fi
+}
+
+SCHEME_STOREKIT_CONFIG_PATH="$(resolve_scheme_storekit_config || true)"
+EXPLICIT_STOREKIT_CONFIG_PATH="$(normalize_path "$STOREKIT_CONFIG_PATH" || true)"
+ACTIVE_STOREKIT_CONFIG_PATH="$SCHEME_STOREKIT_CONFIG_PATH"
+if [[ -n "$EXPLICIT_STOREKIT_CONFIG_PATH" ]]; then
+  ACTIVE_STOREKIT_CONFIG_PATH="$EXPLICIT_STOREKIT_CONFIG_PATH"
+fi
+
+if [[ "$STOREKIT_MODE" == "required" ]]; then
+  if [[ -z "$ACTIVE_STOREKIT_CONFIG_PATH" || ! -f "$ACTIVE_STOREKIT_CONFIG_PATH" ]]; then
+    echo "STOREKIT_MODE=required but no valid StoreKit config file is available." >&2
+    echo "Set STOREKIT_CONFIG_PATH or configure StoreKitConfigurationFileReference in ${SCHEME}.xcscheme." >&2
+    exit 1
+  fi
+fi
+
+print_storekit_status "$EXPLICIT_STOREKIT_CONFIG_PATH" "$SCHEME_STOREKIT_CONFIG_PATH" "$ACTIVE_STOREKIT_CONFIG_PATH"
 
 resolve_sim_id() {
   local wanted_name="$1"

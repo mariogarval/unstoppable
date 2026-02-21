@@ -18,6 +18,17 @@ struct PaywallView: View {
         return revenueCat.packages.first(where: { $0.id == selectedPackageID })
     }
 
+    private var fallbackPackage: PaywallPackage? {
+        if let selectedDynamicPackage {
+            return selectedDynamicPackage
+        }
+        if let defaultID = revenueCat.defaultPackageID(),
+           let package = revenueCat.packages.first(where: { $0.id == defaultID }) {
+            return package
+        }
+        return revenueCat.packages.first
+    }
+
     private var ctaTitle: String {
         if isPurchasing {
             return "Processing..."
@@ -152,7 +163,7 @@ struct PaywallView: View {
                 .padding(.top, 24)
 
                 if revenueCat.packages.isEmpty {
-                    Text("Subscriptions are temporarily unavailable. Tap retry while we refresh plans from App Store Connect.")
+                    Text(revenueCat.lastErrorMessage ?? "Subscriptions are temporarily unavailable. Tap retry while we refresh plans from App Store Connect.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -275,13 +286,22 @@ struct PaywallView: View {
 
     @MainActor
     private func handleContinueTapped() async {
-        if let selectedDynamicPackage {
-            await purchase(selectedDynamicPackage)
+        if let package = fallbackPackage {
+            selectedPackageID = package.id
+            await purchase(package)
             return
         }
 
-        purchaseErrorMessage = "Subscription plans are still loading. Please retry in a moment."
+        purchaseErrorMessage = nil
         await revenueCat.refreshPaywall()
+
+        if let package = fallbackPackage {
+            selectedPackageID = package.id
+            await purchase(package)
+            return
+        }
+
+        purchaseErrorMessage = revenueCat.lastErrorMessage ?? "Subscription plans are still loading. Please retry in a moment."
     }
 
     @MainActor
