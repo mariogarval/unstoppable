@@ -6,3 +6,7 @@ backend/api/**/*.pyc
 .env.local
 .env.*.local
 Unstoppable/Config/Secrets.local.xcconfig
+
+# Xcode user-specific workspace state
+*.xcuserstate
+xcuserdata/
