@@ -41,6 +41,7 @@
 
 /* Begin PBXFileReference section */
 		2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingUI.swift; sourceTree = "<group>"; };
+		8D9E7C7F2F49630800D1C986 /* Unstoppable.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Unstoppable.entitlements; sourceTree = "<group>"; };
 		A71B2DFD2A0B1C0000F1A2B3 /* Unstoppable.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Unstoppable.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnstoppableApp.swift; sourceTree = "<group>"; };
 		A71B2E022A0B1C0000F1A2B3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -124,6 +125,7 @@
 		A71B2DFF2A0B1C0000F1A2B3 /* Unstoppable */ = {
 			isa = PBXGroup;
 			children = (
+				8D9E7C7F2F49630800D1C986 /* Unstoppable.entitlements */,
 				A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */,
 				A71B2E022A0B1C0000F1A2B3 /* ContentView.swift */,
 				A71B2E0F2A0B1C0200F1A2B3 /* WelcomeView.swift */,
@@ -426,6 +428,7 @@
 				API_USE_DEV_AUTH = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Unstoppable/Unstoppable.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";
@@ -455,6 +458,7 @@
 				API_USE_DEV_AUTH = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Unstoppable/Unstoppable.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";

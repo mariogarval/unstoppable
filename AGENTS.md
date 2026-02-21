@@ -36,6 +36,12 @@ This file defines how coding agents should operate in this repository.
 - Keep all implementation and troubleshooting steps documented.
 - Do not remove or rewrite prior user changes unless explicitly requested.
 
+## Planning and Clarifications
+
+- Always make a plan first.
+- Ask clarification questions to improve the result.
+- Wait for the answers to clarification questions before starting work.
+
 ## Required Session Logging
 
 For implementation sessions, keep a command/action log in:

@@ -8,6 +8,7 @@ struct WelcomeView: View {
     @State private var appleAppeared = false
     @State private var googleAppeared = false
     @State private var guestAppeared = false
+    @State private var isAppleSigningIn = false
     @State private var isGoogleSigningIn = false
     @State private var authErrorMessage: String?
     @State private var navigateNickname = false
@@ -65,10 +66,11 @@ struct WelcomeView: View {
                     VStack(spacing: 10) {
                         // Sign in with Apple — official button
                         SignInWithAppleButton(.continue) { request in
-                            // Configure your request scopes if needed
-                            // request.requestedScopes = [.fullName, .email]
+                            authSession.configureAppleSignInRequest(request)
                         } onCompletion: { result in
-                            // Handle the result
+                            Task {
+                                await handleAppleSignInResult(result)
+                            }
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
@@ -81,6 +83,7 @@ struct WelcomeView: View {
                         .opacity(appleAppeared ? 1 : 0)
                         .offset(y: appleAppeared ? 0 : 8)
                         .animation(.easeOut(duration: 0.45), value: appleAppeared)
+                        .disabled(isAppleSigningIn || isGoogleSigningIn)
                         .accessibilityLabel("Continue with Apple")
 
                         // Google — neutral, accessible border and contrast
@@ -107,7 +110,7 @@ struct WelcomeView: View {
                                     .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
                             )
                         }
-                        .disabled(isGoogleSigningIn)
+                        .disabled(isAppleSigningIn || isGoogleSigningIn)
                         .accessibilityLabel("Continue with Google")
                         .buttonStyle(.plain)
                         .opacity(googleAppeared ? 1 : 0)
@@ -231,7 +234,7 @@ struct WelcomeView: View {
 
     @MainActor
     private func signInWithGoogle() async {
-        guard !isGoogleSigningIn else { return }
+        guard !isAppleSigningIn, !isGoogleSigningIn else { return }
 
         isGoogleSigningIn = true
         authErrorMessage = nil
@@ -242,9 +245,29 @@ struct WelcomeView: View {
             let bootstrap = await bootstrapIfNeeded(force: true)
             routeAuthenticatedUser(using: bootstrap)
         } catch {
-            authErrorMessage = "Google sign-in failed. Please try again."
+            authErrorMessage = error.localizedDescription
 #if DEBUG
             print("google sign-in failed: \(error.localizedDescription)")
+#endif
+        }
+    }
+
+    @MainActor
+    private func handleAppleSignInResult(_ result: Result<ASAuthorization, Error>) async {
+        guard !isAppleSigningIn, !isGoogleSigningIn else { return }
+
+        isAppleSigningIn = true
+        authErrorMessage = nil
+        defer { isAppleSigningIn = false }
+
+        do {
+            try await authSession.signInWithApple(result: result)
+            let bootstrap = await bootstrapIfNeeded(force: true)
+            routeAuthenticatedUser(using: bootstrap)
+        } catch {
+            authErrorMessage = error.localizedDescription
+#if DEBUG
+            print("apple sign-in failed: \(error.localizedDescription)")
 #endif
         }
     }
