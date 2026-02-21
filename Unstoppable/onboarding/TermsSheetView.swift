@@ -8,6 +8,8 @@ struct TermsSheetView: View {
     @State private var agreeAll = false
     @State private var isOver16 = false
     @State private var agreeMarketing = false
+    @State private var isSavingTerms = false
+    @State private var syncErrorMessage: String?
 
     private var canProceed: Bool { isOver16 }
 
@@ -109,12 +111,21 @@ struct TermsSheetView: View {
 
             Spacer()
 
+            if let syncErrorMessage {
+                Text(syncErrorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+            }
+
             Button {
-                syncTermsAccepted()
-                didAccept = true
-                dismiss()
+                Task {
+                    await completeTermsFlow()
+                }
             } label: {
-                Text("Done. Move on.")
+                Text(isSavingTerms ? "Saving..." : "Done. Move on.")
                     .font(.body.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .padding(.vertical, 4)
@@ -122,10 +133,11 @@ struct TermsSheetView: View {
                     .background(canProceed ? .blue : Color(.systemGray4))
                     .clipShape(RoundedRectangle(cornerRadius: 14))
             }
-            .disabled(!canProceed)
+            .disabled(!canProceed || isSavingTerms)
             .padding(.horizontal, 20)
             .padding(.bottom, 32)
         }
+        .disabled(isSavingTerms)
         .presentationDetents([.medium])
         .presentationDragIndicator(.hidden)
         .presentationCornerRadius(24)
@@ -136,21 +148,29 @@ struct TermsSheetView: View {
         agreeAll = isOver16 && agreeMarketing
     }
 
-    private func syncTermsAccepted() {
-        Task {
-            do {
-                _ = try await syncService.syncUserProfile(
-                    UserProfileUpsertRequest(
-                        termsAccepted: canProceed,
-                        termsOver16Accepted: isOver16,
-                        termsMarketingAccepted: agreeMarketing
-                    )
+    @MainActor
+    private func completeTermsFlow() async {
+        guard canProceed else { return }
+
+        isSavingTerms = true
+        syncErrorMessage = nil
+        defer { isSavingTerms = false }
+
+        do {
+            _ = try await syncService.syncUserProfile(
+                UserProfileUpsertRequest(
+                    termsAccepted: canProceed,
+                    termsOver16Accepted: isOver16,
+                    termsMarketingAccepted: agreeMarketing
                 )
-            } catch {
+            )
+            didAccept = true
+            dismiss()
+        } catch {
+            syncErrorMessage = "Could not save terms acceptance. Please try again."
 #if DEBUG
-                print("syncUserProfile(termsAccepted) failed: \(error.localizedDescription)")
+            print("syncUserProfile(termsAccepted) failed: \(error.localizedDescription)")
 #endif
-            }
         }
     }
 }

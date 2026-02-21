@@ -12,9 +12,13 @@ from google.api_core import exceptions as google_exceptions
 _db: firestore.Client | None = None
 
 
-def _init_firestore_client() -> firestore.Client:
+def _ensure_firebase_initialized() -> None:
     if not firebase_admin._apps:
         firebase_admin.initialize_app(credentials.ApplicationDefault())
+
+
+def _init_firestore_client() -> firestore.Client:
+    _ensure_firebase_initialized()
     return firestore.client()
 
 
@@ -235,6 +239,7 @@ def _canonical_user_id_for_app_user_id(raw_user_id: str) -> str:
 def _user_id_from_request() -> tuple[str | None, tuple[dict[str, str], int] | None]:
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
+        _ensure_firebase_initialized()
         token = auth_header.replace("Bearer ", "", 1).strip()
         try:
             decoded = auth.verify_id_token(token)

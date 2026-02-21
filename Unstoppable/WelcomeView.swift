@@ -194,8 +194,10 @@ struct WelcomeView: View {
                         didHandleRestoreRouting = true
                         let restored = await authSession.restoreSessionIfPossible()
                         let bootstrap = await bootstrapIfNeeded()
-                        if restored {
+                        if restored, let bootstrap {
                             routeAuthenticatedUser(using: bootstrap)
+                        } else if restored {
+                            authErrorMessage = "Signed in, but failed to load your account. Please try again."
                         }
                     } else {
                         _ = await bootstrapIfNeeded()
@@ -242,7 +244,10 @@ struct WelcomeView: View {
 
         do {
             try await authSession.signInWithGoogle()
-            let bootstrap = await bootstrapIfNeeded(force: true)
+            guard let bootstrap = await bootstrapIfNeeded(force: true) else {
+                authErrorMessage = "Signed in, but failed to load your account. Please try again."
+                return
+            }
             routeAuthenticatedUser(using: bootstrap)
         } catch {
             authErrorMessage = error.localizedDescription
@@ -262,7 +267,10 @@ struct WelcomeView: View {
 
         do {
             try await authSession.signInWithApple(result: result)
-            let bootstrap = await bootstrapIfNeeded(force: true)
+            guard let bootstrap = await bootstrapIfNeeded(force: true) else {
+                authErrorMessage = "Signed in, but failed to load your account. Please try again."
+                return
+            }
             routeAuthenticatedUser(using: bootstrap)
         } catch {
             authErrorMessage = error.localizedDescription
@@ -273,7 +281,7 @@ struct WelcomeView: View {
     }
 
     @MainActor
-    private func routeAuthenticatedUser(using bootstrap: BootstrapResponse?) {
+    private func routeAuthenticatedUser(using bootstrap: BootstrapResponse) {
         navigateHome = false
         navigateNickname = false
 

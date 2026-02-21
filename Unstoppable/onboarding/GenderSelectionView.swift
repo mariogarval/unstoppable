@@ -2,6 +2,8 @@ import SwiftUI
 
 struct GenderSelectionView: View {
     @State private var navigateNext = false
+    @State private var isSavingProfile = false
+    @State private var syncErrorMessage: String?
     private let syncService = UserDataSyncService.shared
 
     private let genders: [(label: String, icon: String)] = [
@@ -30,8 +32,9 @@ struct GenderSelectionView: View {
             VStack(spacing: 10) {
                 ForEach(genders, id: \.label) { gender in
                     Button {
-                        syncGender(gender.label)
-                        navigateNext = true
+                        Task {
+                            await continueWithGender(gender.label)
+                        }
                     } label: {
                         HStack(spacing: 14) {
                             Image(systemName: gender.icon)
@@ -52,10 +55,19 @@ struct GenderSelectionView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .accessibilityHint("Selects this option.")
                     }
+                    .disabled(isSavingProfile)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 24)
+
+            if let syncErrorMessage {
+                Text(syncErrorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+            }
 
             Spacer()
 
@@ -68,6 +80,7 @@ struct GenderSelectionView: View {
                     .frame(minHeight: 44)
             }
             .accessibilityHint("Continues without choosing a gender.")
+            .disabled(isSavingProfile)
             .padding(.bottom, 24)
         }
         .background(.white)
@@ -82,23 +95,28 @@ struct GenderSelectionView: View {
         }
     }
 
-    private func syncGender(_ gender: String) {
-        Task {
-            do {
-                _ = try await syncService.syncUserProfile(
-                    UserProfileUpsertRequest(
-                        nickname: nil,
-                        ageGroup: nil,
-                        gender: gender,
-                        notificationsEnabled: nil,
-                        termsAccepted: nil
-                    )
+    @MainActor
+    private func continueWithGender(_ gender: String) async {
+        isSavingProfile = true
+        syncErrorMessage = nil
+        defer { isSavingProfile = false }
+
+        do {
+            _ = try await syncService.syncUserProfile(
+                UserProfileUpsertRequest(
+                    nickname: nil,
+                    ageGroup: nil,
+                    gender: gender,
+                    notificationsEnabled: nil,
+                    termsAccepted: nil
                 )
-            } catch {
+            )
+            navigateNext = true
+        } catch {
+            syncErrorMessage = "Could not save your gender. Please try again."
 #if DEBUG
-                print("syncUserProfile(gender) failed: \(error.localizedDescription)")
+            print("syncUserProfile(gender) failed: \(error.localizedDescription)")
 #endif
-            }
         }
     }
 }

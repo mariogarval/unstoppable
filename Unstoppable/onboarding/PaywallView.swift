@@ -6,6 +6,7 @@ struct PaywallView: View {
     @State private var navigateHome = false
     @State private var isPurchasing = false
     @State private var isRestoring = false
+    @State private var isSavingSelection = false
     @State private var purchaseErrorMessage: String?
     @StateObject private var revenueCat = RevenueCatManager.shared
     private let syncService = UserDataSyncService.shared
@@ -186,7 +187,7 @@ struct PaywallView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 28)
-                .disabled(isPurchasing || isRestoring || revenueCat.isLoadingOfferings)
+                .disabled(isPurchasing || isRestoring || revenueCat.isLoadingOfferings || isSavingSelection)
                 .accessibilityHint("Starts a 7‑day free trial, then auto‑renews unless canceled.")
 
                 Button {
@@ -200,10 +201,12 @@ struct PaywallView: View {
                         .frame(minHeight: 44)
                 }
                 .buttonStyle(.plain)
-                .disabled(isPurchasing || isRestoring || revenueCat.isLoadingOfferings)
+                .disabled(isPurchasing || isRestoring || revenueCat.isLoadingOfferings || isSavingSelection)
 
                 Button {
-                    completePaywallSelection("skip")
+                    Task {
+                        await completePaywallSelection("skip")
+                    }
                 } label: {
                     Text("Stay limited. Your call.")
                         .font(.callout)
@@ -211,6 +214,7 @@ struct PaywallView: View {
                         .frame(minHeight: 44)
                 }
                 .buttonStyle(.plain)
+                .disabled(isPurchasing || isRestoring || revenueCat.isLoadingOfferings || isSavingSelection)
                 .accessibilityHint("Continue without subscribing.")
                 .padding(.bottom, 32)
             }
@@ -223,7 +227,9 @@ struct PaywallView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 DismissButton {
-                    completePaywallSelection("dismiss")
+                    Task {
+                        await completePaywallSelection("dismiss")
+                    }
                 }
             }
         }
@@ -251,7 +257,7 @@ struct PaywallView: View {
             await purchase(selectedDynamicPackage)
             return
         }
-        completePaywallSelection(selectedPlan.rawValue)
+        await completePaywallSelection(selectedPlan.rawValue)
     }
 
     @MainActor
@@ -266,7 +272,7 @@ struct PaywallView: View {
             let result = try await revenueCat.purchase(packageID: package.id)
             switch result {
             case .purchased:
-                completePaywallSelection(package.paymentOption)
+                await completePaywallSelection(package.paymentOption)
             case .cancelled:
                 break
             }
@@ -289,7 +295,7 @@ struct PaywallView: View {
         do {
             let restored = try await revenueCat.restorePurchases()
             if restored {
-                completePaywallSelection("restore")
+                await completePaywallSelection("restore")
             } else {
                 purchaseErrorMessage = "No active subscription found to restore."
             }
@@ -301,18 +307,24 @@ struct PaywallView: View {
         }
     }
 
-    private func completePaywallSelection(_ option: String) {
-        navigateHome = true
-        Task {
-            do {
-                _ = try await syncService.syncUserProfile(
-                    UserProfileUpsertRequest(paymentOption: option)
-                )
-            } catch {
+    @MainActor
+    private func completePaywallSelection(_ option: String) async {
+        guard !isSavingSelection else { return }
+
+        isSavingSelection = true
+        purchaseErrorMessage = nil
+        defer { isSavingSelection = false }
+
+        do {
+            _ = try await syncService.syncUserProfile(
+                UserProfileUpsertRequest(paymentOption: option)
+            )
+            navigateHome = true
+        } catch {
+            purchaseErrorMessage = "Could not save your selection. Please try again."
 #if DEBUG
-                print("syncUserProfile(paymentOption) failed: \(error.localizedDescription)")
+            print("syncUserProfile(paymentOption) failed: \(error.localizedDescription)")
 #endif
-            }
         }
     }
 }

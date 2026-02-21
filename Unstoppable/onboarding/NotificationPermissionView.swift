@@ -4,6 +4,9 @@ import UserNotifications
 struct NotificationPermissionView: View {
     @State private var navigateNext = false
     @State private var bellBounce = false
+    @State private var isRequestingPermission = false
+    @State private var isSavingProfile = false
+    @State private var syncErrorMessage: String?
     private let syncService = UserDataSyncService.shared
 
     var body: some View {
@@ -64,10 +67,12 @@ struct NotificationPermissionView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .accessibilityHint("Requests notification permission.")
+                .disabled(isRequestingPermission || isSavingProfile)
 
                 Button {
-                    navigateNext = true
-                    syncNotificationsEnabled(false)
+                    Task {
+                        await continueWithNotifications(enabled: false)
+                    }
                 } label: {
                     Text("I\u{2019}ll risk it alone")
                         .font(.subheadline)
@@ -75,9 +80,19 @@ struct NotificationPermissionView: View {
                         .frame(minHeight: 44)
                 }
                 .accessibilityHint("Skips enabling notifications.")
+                .disabled(isRequestingPermission || isSavingProfile)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
+
+            if let syncErrorMessage {
+                Text(syncErrorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
+            }
         }
         .background(.white)
         .navigationBarBackButtonHidden(true)
@@ -97,33 +112,42 @@ struct NotificationPermissionView: View {
     }
 
     private func requestNotificationPermission() {
+        isRequestingPermission = true
+        syncErrorMessage = nil
         UNUserNotificationCenter.current().requestAuthorization(
             options: [.alert, .badge, .sound]
         ) { granted, _ in
-            syncNotificationsEnabled(granted)
             DispatchQueue.main.async {
-                navigateNext = true
+                isRequestingPermission = false
+                Task {
+                    await continueWithNotifications(enabled: granted)
+                }
             }
         }
     }
 
-    private func syncNotificationsEnabled(_ enabled: Bool) {
-        Task {
-            do {
-                _ = try await syncService.syncUserProfile(
-                    UserProfileUpsertRequest(
-                        nickname: nil,
-                        ageGroup: nil,
-                        gender: nil,
-                        notificationsEnabled: enabled,
-                        termsAccepted: nil
-                    )
+    @MainActor
+    private func continueWithNotifications(enabled: Bool) async {
+        isSavingProfile = true
+        syncErrorMessage = nil
+        defer { isSavingProfile = false }
+
+        do {
+            _ = try await syncService.syncUserProfile(
+                UserProfileUpsertRequest(
+                    nickname: nil,
+                    ageGroup: nil,
+                    gender: nil,
+                    notificationsEnabled: enabled,
+                    termsAccepted: nil
                 )
-            } catch {
+            )
+            navigateNext = true
+        } catch {
+            syncErrorMessage = "Could not save notification preference. Please try again."
 #if DEBUG
-                print("syncUserProfile(notifications) failed: \(error.localizedDescription)")
+            print("syncUserProfile(notifications) failed: \(error.localizedDescription)")
 #endif
-            }
         }
     }
 }
