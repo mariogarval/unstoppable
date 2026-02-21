@@ -4,6 +4,8 @@ struct NicknameView: View {
     @State private var nickname = ""
     @State private var appeared = false
     @State private var navigateNext = false
+    @State private var isSavingProfile = false
+    @State private var syncErrorMessage: String?
     @FocusState private var isFocused: Bool
 
     private let syncService = UserDataSyncService.shared
@@ -67,17 +69,26 @@ struct NicknameView: View {
 
             // Next button
             Button {
-                continueToAgeGroup()
+                Task {
+                    await continueToAgeGroup()
+                }
             } label: {
-                Text("Next")
+                Text(isSavingProfile ? "Saving..." : "Next")
                     .font(.body.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .foregroundStyle(nickname.isEmpty ? .white.opacity(0.6) : .white)
                     .background(nickname.isEmpty ? Color(.systemGray4) : Color.accentColor)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            .disabled(nickname.isEmpty)
+            .disabled(nickname.isEmpty || isSavingProfile)
             .padding(.bottom, 32)
+
+            if let syncErrorMessage {
+                Text(syncErrorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(.bottom, 16)
+            }
         }
         .padding(.horizontal, 20)
         .background(Color(.systemBackground))
@@ -87,27 +98,31 @@ struct NicknameView: View {
         }
     }
 
-    private func continueToAgeGroup() {
+    @MainActor
+    private func continueToAgeGroup() async {
         let trimmed = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        navigateNext = true
-        Task {
-            do {
-                _ = try await syncService.syncUserProfile(
-                    UserProfileUpsertRequest(
-                        nickname: trimmed,
-                        ageGroup: nil,
-                        gender: nil,
-                        notificationsEnabled: nil,
-                        termsAccepted: nil
-                    )
+        isSavingProfile = true
+        syncErrorMessage = nil
+        defer { isSavingProfile = false }
+
+        do {
+            _ = try await syncService.syncUserProfile(
+                UserProfileUpsertRequest(
+                    nickname: trimmed,
+                    ageGroup: nil,
+                    gender: nil,
+                    notificationsEnabled: nil,
+                    termsAccepted: nil
                 )
-            } catch {
+            )
+            navigateNext = true
+        } catch {
+            syncErrorMessage = "Could not save your profile. Please try again."
 #if DEBUG
-                print("syncUserProfile(nickname) failed: \(error.localizedDescription)")
+            print("syncUserProfile(nickname) failed: \(error.localizedDescription)")
 #endif
-            }
         }
     }
 }

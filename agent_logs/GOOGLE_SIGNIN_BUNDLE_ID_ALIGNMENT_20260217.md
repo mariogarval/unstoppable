@@ -49,8 +49,8 @@ Validated with project build and simulator launch scripts.
 
 **Files Created/Modified**:
 - `README.md` - added explicit note to regenerate Firebase plist and re-check URL schemes after bundle changes.
-- `Unstoppable/codex_logs/BUNDLE_ID_MIGRATION_20260217.md` - codex session record.
-- `Unstoppable/codex_logs/__CODEX_INDEX.md` - index entry for migration session.
+- `Unstoppable/agent_logs/BUNDLE_ID_MIGRATION_20260217.md` - codex session record.
+- `Unstoppable/agent_logs/__AGENT_INDEX.md` - index entry for migration session.
 
 ---
 
@@ -97,6 +97,6 @@ xcodebuild -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj
 
 ## Related Documents
 
-- `Unstoppable/codex_logs/BUNDLE_ID_MIGRATION_20260217.md` - codex migration session.
+- `Unstoppable/agent_logs/BUNDLE_ID_MIGRATION_20260217.md` - codex migration session.
 - `GOOGLE_AUTH_PLAN.md` - detailed auth runbook and troubleshooting history.
 - `PAYMENTS_PLAN.md` - payments runbook updated for new bundle ID.

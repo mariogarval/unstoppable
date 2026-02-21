@@ -12,9 +12,13 @@ from google.api_core import exceptions as google_exceptions
 _db: firestore.Client | None = None
 
 
-def _init_firestore_client() -> firestore.Client:
+def _ensure_firebase_initialized() -> None:
     if not firebase_admin._apps:
         firebase_admin.initialize_app(credentials.ApplicationDefault())
+
+
+def _init_firestore_client() -> firestore.Client:
+    _ensure_firebase_initialized()
     return firestore.client()
 
 
@@ -94,13 +98,152 @@ def _webhook_authorized() -> bool:
     return secrets.compare_digest(token, expected)
 
 
+def _normalize_email(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().lower()
+    return normalized or None
+
+
+def _non_empty_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _profile_completion(profile: dict[str, Any]) -> tuple[bool, list[str]]:
+    missing: list[str] = []
+
+    if not _non_empty_string(profile.get("nickname")):
+        missing.append("nickname")
+    if not isinstance(profile.get("notificationsEnabled"), bool):
+        missing.append("notificationsEnabled")
+    if profile.get("termsAccepted") is not True:
+        missing.append("termsAccepted")
+    if profile.get("termsOver16Accepted") is not True:
+        missing.append("termsOver16Accepted")
+    if not _non_empty_string(profile.get("paymentOption")):
+        missing.append("paymentOption")
+
+    return len(missing) == 0, missing
+
+
+def _upsert_uid_alias(uid: str, canonical_user_id: str, email: str | None, provider: str) -> None:
+    payload: dict[str, Any] = {
+        "canonicalUserId": canonical_user_id,
+        "lastSeenUid": uid,
+        "lastSeenProvider": provider,
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }
+    if email:
+        payload["email"] = email
+    try:
+        _get_db().collection("user_uid_aliases").document(uid).set(payload, merge=True)
+    except google_exceptions.GoogleAPICallError:
+        return
+
+
+def _resolve_canonical_user_id(decoded: dict[str, Any]) -> str | None:
+    raw_uid = decoded.get("uid")
+    if not isinstance(raw_uid, str) or not raw_uid.strip():
+        return None
+    uid = raw_uid.strip()
+
+    firebase_claim = decoded.get("firebase")
+    provider = ""
+    if isinstance(firebase_claim, dict):
+        raw_provider = firebase_claim.get("sign_in_provider")
+        if isinstance(raw_provider, str):
+            provider = raw_provider.strip()
+
+    email = _normalize_email(decoded.get("email"))
+    email_verified = decoded.get("email_verified") is True
+    if not email or not email_verified:
+        _upsert_uid_alias(uid=uid, canonical_user_id=uid, email=email, provider=provider)
+        return uid
+
+    alias_ref = _get_db().collection("user_email_aliases").document(email)
+    try:
+        alias_ref.create(
+            {
+                "canonicalUserId": uid,
+                "email": email,
+                "firstSeenUid": uid,
+                "lastSeenUid": uid,
+                "lastSeenProvider": provider,
+                "createdAt": firestore.SERVER_TIMESTAMP,
+                "updatedAt": firestore.SERVER_TIMESTAMP,
+            }
+        )
+        canonical_user_id = uid
+    except google_exceptions.AlreadyExists:
+        try:
+            alias_doc = alias_ref.get()
+        except google_exceptions.GoogleAPICallError:
+            _upsert_uid_alias(uid=uid, canonical_user_id=uid, email=email, provider=provider)
+            return uid
+
+        alias_data = alias_doc.to_dict() if alias_doc.exists else {}
+        raw_canonical = alias_data.get("canonicalUserId")
+        if isinstance(raw_canonical, str) and raw_canonical.strip():
+            canonical_user_id = raw_canonical.strip()
+        else:
+            canonical_user_id = uid
+    except google_exceptions.GoogleAPICallError:
+        _upsert_uid_alias(uid=uid, canonical_user_id=uid, email=email, provider=provider)
+        return uid
+
+    try:
+        alias_ref.set(
+            {
+                "canonicalUserId": canonical_user_id,
+                "email": email,
+                "lastSeenUid": uid,
+                "lastSeenProvider": provider,
+                "updatedAt": firestore.SERVER_TIMESTAMP,
+            },
+            merge=True,
+        )
+    except google_exceptions.GoogleAPICallError:
+        pass
+
+    _upsert_uid_alias(uid=uid, canonical_user_id=canonical_user_id, email=email, provider=provider)
+    if canonical_user_id != uid:
+        _upsert_uid_alias(
+            uid=canonical_user_id,
+            canonical_user_id=canonical_user_id,
+            email=email,
+            provider=provider,
+        )
+    return canonical_user_id
+
+
+def _canonical_user_id_for_app_user_id(raw_user_id: str) -> str:
+    user_id = raw_user_id.strip()
+    if not user_id:
+        return user_id
+
+    try:
+        alias_doc = _get_db().collection("user_uid_aliases").document(user_id).get()
+    except google_exceptions.GoogleAPICallError:
+        return user_id
+
+    if not alias_doc.exists:
+        return user_id
+
+    alias_data = alias_doc.to_dict() or {}
+    raw_canonical = alias_data.get("canonicalUserId")
+    if isinstance(raw_canonical, str) and raw_canonical.strip():
+        return raw_canonical.strip()
+    return user_id
+
+
 def _user_id_from_request() -> tuple[str | None, tuple[dict[str, str], int] | None]:
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
+        _ensure_firebase_initialized()
         token = auth_header.replace("Bearer ", "", 1).strip()
         try:
             decoded = auth.verify_id_token(token)
-            user_id = decoded.get("uid")
+            user_id = _resolve_canonical_user_id(decoded)
             if not user_id:
                 return None, ({"error": "Token missing uid claim."}, 401)
             return user_id, None
@@ -247,10 +390,17 @@ def get_bootstrap() -> tuple[Any, int]:
     streak_doc = user_ref.collection("stats").document("streak").get()
     today_doc = user_ref.collection("progress").document(_today_yyyy_mm_dd()).get()
     subscription_doc = user_ref.collection("payments").document("subscription").get()
+    profile_data = profile_doc.to_dict() if profile_doc.exists else {}
+    profile_complete, missing_profile_fields = _profile_completion(profile_data)
 
     response = {
         "userId": user_id,
-        "profile": _json_safe(profile_doc.to_dict() if profile_doc.exists else {}),
+        "profile": _json_safe(profile_data),
+        "isProfileComplete": profile_complete,
+        "profileCompletion": {
+            "isComplete": profile_complete,
+            "missingRequiredFields": missing_profile_fields,
+        },
         "routine": _json_safe(routine_doc.to_dict() if routine_doc.exists else {}),
         "streak": _json_safe(streak_doc.to_dict() if streak_doc.exists else {}),
         "progress": {
@@ -352,6 +502,7 @@ def revenuecat_webhook() -> tuple[Any, int]:
     if not isinstance(raw_user_id, str) or not raw_user_id.strip():
         return jsonify({"error": "Missing app_user_id."}), 400
     app_user_id = raw_user_id.strip()
+    canonical_app_user_id = _canonical_user_id_for_app_user_id(app_user_id)
 
     entitlement_ids: list[str] = []
     if isinstance(event.get("entitlement_ids"), list):
@@ -398,7 +549,8 @@ def revenuecat_webhook() -> tuple[Any, int]:
                 "provider": "revenuecat",
                 "eventId": event_id,
                 "eventType": event_type,
-                "appUserId": app_user_id,
+                "appUserId": canonical_app_user_id,
+                "rawAppUserId": app_user_id,
                 "eventAt": event_at,
                 "receivedAt": firestore.SERVER_TIMESTAMP,
                 "payload": event,
@@ -409,7 +561,7 @@ def revenuecat_webhook() -> tuple[Any, int]:
 
     subscription_ref = (
         db.collection("users")
-        .document(app_user_id)
+        .document(canonical_app_user_id)
         .collection("payments")
         .document("subscription")
     )
@@ -422,7 +574,8 @@ def revenuecat_webhook() -> tuple[Any, int]:
     entitlement_id = entitlement_ids[0] if entitlement_ids else ""
     normalized = {
         "provider": "revenuecat",
-        "appUserId": app_user_id,
+        "appUserId": canonical_app_user_id,
+        "rawAppUserId": app_user_id,
         "entitlementId": entitlement_id,
         "entitlementIds": entitlement_ids,
         "isActive": is_active,

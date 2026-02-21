@@ -8,6 +8,7 @@ struct WelcomeView: View {
     @State private var appleAppeared = false
     @State private var googleAppeared = false
     @State private var guestAppeared = false
+    @State private var isAppleSigningIn = false
     @State private var isGoogleSigningIn = false
     @State private var authErrorMessage: String?
     @State private var navigateNickname = false
@@ -65,10 +66,11 @@ struct WelcomeView: View {
                     VStack(spacing: 10) {
                         // Sign in with Apple — official button
                         SignInWithAppleButton(.continue) { request in
-                            // Configure your request scopes if needed
-                            // request.requestedScopes = [.fullName, .email]
+                            authSession.configureAppleSignInRequest(request)
                         } onCompletion: { result in
-                            // Handle the result
+                            Task {
+                                await handleAppleSignInResult(result)
+                            }
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
@@ -81,6 +83,7 @@ struct WelcomeView: View {
                         .opacity(appleAppeared ? 1 : 0)
                         .offset(y: appleAppeared ? 0 : 8)
                         .animation(.easeOut(duration: 0.45), value: appleAppeared)
+                        .disabled(isAppleSigningIn || isGoogleSigningIn)
                         .accessibilityLabel("Continue with Apple")
 
                         // Google — neutral, accessible border and contrast
@@ -107,7 +110,7 @@ struct WelcomeView: View {
                                     .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
                             )
                         }
-                        .disabled(isGoogleSigningIn)
+                        .disabled(isAppleSigningIn || isGoogleSigningIn)
                         .accessibilityLabel("Continue with Google")
                         .buttonStyle(.plain)
                         .opacity(googleAppeared ? 1 : 0)
@@ -191,8 +194,10 @@ struct WelcomeView: View {
                         didHandleRestoreRouting = true
                         let restored = await authSession.restoreSessionIfPossible()
                         let bootstrap = await bootstrapIfNeeded()
-                        if restored {
+                        if restored, let bootstrap {
                             routeAuthenticatedUser(using: bootstrap)
+                        } else if restored {
+                            authErrorMessage = "Signed in, but failed to load your account. Please try again."
                         }
                     } else {
                         _ = await bootstrapIfNeeded()
@@ -231,7 +236,7 @@ struct WelcomeView: View {
 
     @MainActor
     private func signInWithGoogle() async {
-        guard !isGoogleSigningIn else { return }
+        guard !isAppleSigningIn, !isGoogleSigningIn else { return }
 
         isGoogleSigningIn = true
         authErrorMessage = nil
@@ -239,10 +244,13 @@ struct WelcomeView: View {
 
         do {
             try await authSession.signInWithGoogle()
-            let bootstrap = await bootstrapIfNeeded(force: true)
+            guard let bootstrap = await bootstrapIfNeeded(force: true) else {
+                authErrorMessage = "Signed in, but failed to load your account. Please try again."
+                return
+            }
             routeAuthenticatedUser(using: bootstrap)
         } catch {
-            authErrorMessage = "Google sign-in failed. Please try again."
+            authErrorMessage = error.localizedDescription
 #if DEBUG
             print("google sign-in failed: \(error.localizedDescription)")
 #endif
@@ -250,11 +258,34 @@ struct WelcomeView: View {
     }
 
     @MainActor
-    private func routeAuthenticatedUser(using bootstrap: BootstrapResponse?) {
+    private func handleAppleSignInResult(_ result: Result<ASAuthorization, Error>) async {
+        guard !isAppleSigningIn, !isGoogleSigningIn else { return }
+
+        isAppleSigningIn = true
+        authErrorMessage = nil
+        defer { isAppleSigningIn = false }
+
+        do {
+            try await authSession.signInWithApple(result: result)
+            guard let bootstrap = await bootstrapIfNeeded(force: true) else {
+                authErrorMessage = "Signed in, but failed to load your account. Please try again."
+                return
+            }
+            routeAuthenticatedUser(using: bootstrap)
+        } catch {
+            authErrorMessage = error.localizedDescription
+#if DEBUG
+            print("apple sign-in failed: \(error.localizedDescription)")
+#endif
+        }
+    }
+
+    @MainActor
+    private func routeAuthenticatedUser(using bootstrap: BootstrapResponse) {
         navigateHome = false
         navigateNickname = false
 
-        if isOnboarded(bootstrap) {
+        if isProfileComplete(bootstrap) {
             navigateHome = true
             return
         }
@@ -262,20 +293,37 @@ struct WelcomeView: View {
         navigateNickname = true
     }
 
-    private func isOnboarded(_ bootstrap: BootstrapResponse?) -> Bool {
-        guard let paymentOption = profileString("paymentOption", from: bootstrap) else {
+    private func isProfileComplete(_ bootstrap: BootstrapResponse?) -> Bool {
+        guard let bootstrap else {
             return false
         }
 
-        return !paymentOption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if let explicit = bootstrap.isProfileComplete {
+            return explicit
+        }
+        if let explicitFromObject = bootstrap.profileCompletion?.isComplete {
+            return explicitFromObject
+        }
+
+        let hasNickname = hasProfileString("nickname", from: bootstrap)
+        let hasNotificationsSelection = profileBool("notificationsEnabled", from: bootstrap) != nil
+        let termsAccepted = profileBool("termsAccepted", from: bootstrap) == true
+        let over16Accepted = profileBool("termsOver16Accepted", from: bootstrap) == true
+        let hasPaymentOption = hasProfileString("paymentOption", from: bootstrap)
+
+        return hasNickname && hasNotificationsSelection && termsAccepted && over16Accepted && hasPaymentOption
     }
 
-    private func profileString(_ key: String, from bootstrap: BootstrapResponse?) -> String? {
-        guard let value = bootstrap?.profile[key] else { return nil }
-        if case .string(let str) = value {
-            return str
-        }
-        return nil
+    private func hasProfileString(_ key: String, from bootstrap: BootstrapResponse) -> Bool {
+        guard let value = bootstrap.profile[key] else { return false }
+        guard case .string(let str) = value else { return false }
+        return !str.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func profileBool(_ key: String, from bootstrap: BootstrapResponse) -> Bool? {
+        guard let value = bootstrap.profile[key] else { return nil }
+        guard case .bool(let boolValue) = value else { return nil }
+        return boolValue
     }
 }
 

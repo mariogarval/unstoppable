@@ -3,7 +3,49 @@
 **Last Updated**: 2026-02-21
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 4 markdown documents
+**Files**: 6 markdown documents
+
+---
+
+## February 21, 2026 - Auth and Onboarding Troubleshooting Hardening
+
+### AUTH_BOOTSTRAP_PROFILE_SYNC_HARDENING_20260221.md ✅ COMPLETE
+**Date**: 2026-02-21 | **Status**: Complete
+**Branch**: `codex/apple-auth-firebase`
+
+**This document captures the end-to-end stabilization pass for Firebase auth bootstrap, Cloud Run deployment auth settings, onboarding profile persistence, and reset tooling.**
+
+**Problem Solved**: Eliminated partial-sign-in behavior where authentication succeeded but account bootstrap/profile persistence failed, producing inconsistent onboarding and Firestore state.
+
+**Key Results**:
+- Added backend auth bootstrap runbook: `backend/api/API_RUNBOOK.md`.
+- Confirmed and documented backend fixes for Firebase token verification init, canonical user mapping, and profile completion routing.
+- Added reusable reset scripts and Poetry project metadata under `backend/api` for deterministic retesting.
+
+**Next Steps**: Re-run the Google -> Apple same-email matrix after any future auth/deploy configuration changes to ensure canonical identity continuity remains intact.
+
+**Related**: `backend/agent_logs/IDENTITY_CANONICALIZATION_PROFILE_COMPLETION_20260221.md` (backend canonical identity implementation), `Unstoppable/agent_logs/PROFILE_COMPLETION_ROUTING_20260221.md` (app routing consumer)
+
+---
+
+## February 21, 2026 - Apple Auth Firebase Rollout
+
+### APPLE_AUTH_FIREBASE_ROLLOUT_20260221.md 🔄 IN PROGRESS
+**Date**: 2026-02-21 | **Status**: In Progress
+**Branch**: `codex/apple-auth-firebase`
+
+**This document tracks implementation and validation progress for Sign in with Apple using Firebase Auth in the iOS app.**
+
+**Problem Solved**: Completed Apple sign-in code wiring and Firebase credential flow so the existing Apple button in `WelcomeView` is functional and aligned with current bearer-token auth architecture.
+
+**Key Results**:
+- Implemented nonce-based Apple sign-in, Firebase credential exchange, and email-based collision handling with Google accounts.
+- Verified simulator builds and scripted app launch after auth changes.
+- Updated runbooks/docs (`APPLE_AUTH_PLAN.md`, `README.md`, `GOOGLE_AUTH_PLAN.md`) to reflect Apple auth rollout state.
+
+**Next Steps**: Complete manual runtime matrix (AA-31) and backend bearer-token verification (AA-32), then finalize App Store parity checklist (AA-40).
+
+**Related**: `APPLE_AUTH_PLAN.md` (active implementation runbook), `GOOGLE_AUTH_PLAN.md` (existing Google auth runbook)
 
 ---
 
@@ -24,7 +66,7 @@
 
 **Next Steps**: Complete sandbox purchase matrix and deployed webhook validation.
 
-**Related**: `Unstoppable/codex_logs/REVENUECAT_PHASE1_20260212.md` (app phase), `Unstoppable/codex_logs/REVENUECAT_PHASE2_20260212.md` (sync phase), `backend/codex_logs/REVENUECAT_BACKEND_PHASE3_20260212.md` (backend phase)
+**Related**: `Unstoppable/agent_logs/REVENUECAT_PHASE1_20260212.md` (app phase), `Unstoppable/agent_logs/REVENUECAT_PHASE2_20260212.md` (sync phase), `backend/agent_logs/REVENUECAT_BACKEND_PHASE3_20260212.md` (backend phase)
 
 ---
 
@@ -45,7 +87,7 @@
 
 **Next Steps**: Run manual in-app Google Sign-In and paywall purchase/restore validation.
 
-**Related**: `Unstoppable/codex_logs/BUNDLE_ID_MIGRATION_20260217.md` (migration session detail)
+**Related**: `Unstoppable/agent_logs/BUNDLE_ID_MIGRATION_20260217.md` (migration session detail)
 
 ---
 
@@ -93,6 +135,8 @@
 
 | Topic | Location |
 |-------|----------|
+| Auth/bootstrap/profile troubleshooting hardening | `agent_logs/AUTH_BOOTSTRAP_PROFILE_SYNC_HARDENING_20260221.md` |
+| Apple auth Firebase rollout status | `agent_logs/APPLE_AUTH_FIREBASE_ROLLOUT_20260221.md` |
 | RevenueCat rollout status | `agent_logs/REVENUECAT_PAYMENTS_ROLLOUT_STATUS_20260217.md` |
 | Bundle ID and Firebase callback alignment | `agent_logs/GOOGLE_SIGNIN_BUNDLE_ID_ALIGNMENT_20260217.md` |
 | RevenueCat implementation runbook creation | `agent_logs/PAYMENTS_PLAN_20260213.md` |

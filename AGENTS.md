@@ -20,8 +20,9 @@ This file defines how coding agents should operate in this repository.
    - `xcodebuild -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj -scheme Unstoppable -configuration Debug -destination "platform=iOS Simulator,name=iPhone 17 Pro" build`
    - `./scripts/run_ios_sim.sh "iPhone 17 Pro"`
 7. Update project memory docs:
-   - Add or update session file under the correct `codex_logs` folder.
-   - Update matching `__CODEX_INDEX.md` entry.
+   - Use the `agent-logs` skill.
+   - Add or update session file under the correct scoped `agent_logs` folder.
+   - Update matching `__AGENT_INDEX.md` entry.
 
 ## Scope
 
@@ -35,6 +36,12 @@ This file defines how coding agents should operate in this repository.
 - Prefer small, targeted changes and validate with real build/launch checks.
 - Keep all implementation and troubleshooting steps documented.
 - Do not remove or rewrite prior user changes unless explicitly requested.
+
+## Planning and Clarifications
+
+- Always make a plan first.
+- Ask clarification questions to improve the result.
+- Wait for the answers to clarification questions before starting work.
 
 ## Required Session Logging
 
@@ -60,23 +67,19 @@ Rules:
 - Use one persistent shell and one log file per shell session.
 - Keep `_shell_output` local-only; do not commit it.
 
-## Codex Session Notes (Repository Memory)
+## Agent Session Notes (Repository Memory)
 
-Maintain codex session notes and index files:
+Use the `agent-logs` skill for all persisted session memory updates in this repository.
 
-- App-level notes: `/Users/luisgalvez/Projects/unstoppable/Unstoppable/codex_logs`
-- Backend notes: `/Users/luisgalvez/Projects/unstoppable/backend/codex_logs`
-- Repo-level notes (if cross-cutting): `/Users/luisgalvez/Projects/unstoppable/codex_logs`
+Scope routing for this repo:
+- App scope: `/Users/luisgalvez/Projects/unstoppable/Unstoppable/agent_logs`
+- Backend scope: `/Users/luisgalvez/Projects/unstoppable/backend/agent_logs`
+- Repo scope (cross-cutting): `/Users/luisgalvez/Projects/unstoppable/agent_logs`
 
-When adding a new session note:
-- Create a dated markdown session file.
-- Update the corresponding `__CODEX_INDEX.md`.
-- Include:
-  - WHAT was done
-  - KEY FILES modified
-  - STATUS
-  - KEY DECISIONS made
-  - EXECUTED COMMANDS (with CLI args)
+Rules:
+- Choose the narrowest scope that contains the changes.
+- If changes span app + backend, log under repo scope.
+- Maintain `__AGENT_INDEX.md` in the chosen scope.
 
 ## iOS Build and Launch Workflow
 

@@ -175,20 +175,27 @@ actor APIClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
+        var debugAuthMode = "none"
         switch authMode {
         case .none:
             break
         case .devUserID(let userID):
             request.setValue(userID, forHTTPHeaderField: "X-User-Id")
+            debugAuthMode = "dev_user_id"
         case .bearerTokenProvider(let tokenProvider):
             let token = try await tokenProvider().trimmingCharacters(in: .whitespacesAndNewlines)
             guard !token.isEmpty else { throw APIClientError.missingAuthToken }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            debugAuthMode = "bearer"
         }
 
         if let body {
             request.httpBody = try encoder.encode(body)
         }
+
+#if DEBUG
+        print("APIClient \(method.rawValue) \(path) auth=\(debugAuthMode)")
+#endif
 
         return request
     }

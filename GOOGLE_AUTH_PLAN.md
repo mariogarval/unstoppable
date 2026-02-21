@@ -4,6 +4,9 @@ Last updated: 2026-02-12
 Owner: `Unstoppable` app team  
 Status: Executed (2026-02-12 rollout completed; GA-51 backend token curl still pending live token)
 
+Apple auth companion runbook:
+- `/Users/luisgalvez/Projects/unstoppable/APPLE_AUTH_PLAN.md`
+
 ## Purpose
 Implement `Continue with Google` for iOS, authenticate with Firebase, and send Firebase ID tokens to backend endpoints using:
 

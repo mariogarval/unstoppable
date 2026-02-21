@@ -2,6 +2,8 @@ import SwiftUI
 
 struct AgeGroupView: View {
     @State private var navigateNext = false
+    @State private var isSavingProfile = false
+    @State private var syncErrorMessage: String?
     private let syncService = UserDataSyncService.shared
 
     private let ageRanges = [
@@ -34,8 +36,9 @@ struct AgeGroupView: View {
                 VStack(spacing: 10) {
                     ForEach(ageRanges, id: \.self) { range in
                         Button {
-                            syncAgeGroup(range)
-                            navigateNext = true
+                            Task {
+                                await continueWithAgeGroup(range)
+                            }
                         } label: {
                             HStack {
                                 Text(range)
@@ -52,10 +55,19 @@ struct AgeGroupView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .accessibilityHint("Selects this age range.")
+                        .disabled(isSavingProfile)
                     }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
+            }
+
+            if let syncErrorMessage {
+                Text(syncErrorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
             }
 
             Spacer()
@@ -69,6 +81,7 @@ struct AgeGroupView: View {
                     .frame(minHeight: 44)
             }
             .accessibilityHint("Continues without choosing an age group.")
+            .disabled(isSavingProfile)
             .padding(.bottom, 24)
         }
         .background(.white)
@@ -83,23 +96,28 @@ struct AgeGroupView: View {
         }
     }
 
-    private func syncAgeGroup(_ ageGroup: String) {
-        Task {
-            do {
-                _ = try await syncService.syncUserProfile(
-                    UserProfileUpsertRequest(
-                        nickname: nil,
-                        ageGroup: ageGroup,
-                        gender: nil,
-                        notificationsEnabled: nil,
-                        termsAccepted: nil
-                    )
+    @MainActor
+    private func continueWithAgeGroup(_ ageGroup: String) async {
+        isSavingProfile = true
+        syncErrorMessage = nil
+        defer { isSavingProfile = false }
+
+        do {
+            _ = try await syncService.syncUserProfile(
+                UserProfileUpsertRequest(
+                    nickname: nil,
+                    ageGroup: ageGroup,
+                    gender: nil,
+                    notificationsEnabled: nil,
+                    termsAccepted: nil
                 )
-            } catch {
+            )
+            navigateNext = true
+        } catch {
+            syncErrorMessage = "Could not save your age group. Please try again."
 #if DEBUG
-                print("syncUserProfile(ageGroup) failed: \(error.localizedDescription)")
+            print("syncUserProfile(ageGroup) failed: \(error.localizedDescription)")
 #endif
-            }
         }
     }
 }

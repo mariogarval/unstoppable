@@ -1,6 +1,10 @@
 # Unstoppable iOS App + Backend Sync (Current State)
 
-This project is a SwiftUI iOS app with local-first state, Firebase + Google sign-in, and background sync to a Python API on Google Cloud Run.
+This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Google sign-in, and background sync to a Python API on Google Cloud Run.
+
+## Runbooks
+
+- API/Auth troubleshooting: `backend/api/API_RUNBOOK.md`
 
 ## Current Backend Status
 
@@ -9,14 +13,17 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Google sign
 - Base URL (dev): `https://unstoppable-api-1094359674860.us-central1.run.app`
 - Database: Firestore (Native mode, `us-central1`)
 
-## Current Auth Status (Google + Firebase)
+## Current Auth Status (Apple/Google + Firebase)
 
-- App supports `Continue with Google` from `Unstoppable/WelcomeView.swift`.
+- App supports `Continue with Apple` and `Continue with Google` from `Unstoppable/WelcomeView.swift`.
 - Firebase is initialized at startup in `Unstoppable/UnstoppableApp.swift`.
 - Auth/session management lives in `Unstoppable/Auth/AuthSessionManager.swift`.
 - Current iOS bundle ID is `app.unstoppable.unstoppable`.
 - On launch, app attempts session restore from `FirebaseAuth.currentUser` and reconfigures API auth mode.
-- On successful Google sign-in, API auth switches to `Authorization: Bearer <Firebase ID token>` via `bearerTokenProvider`.
+- On successful Apple/Google sign-in, API auth switches to `Authorization: Bearer <Firebase ID token>` via `bearerTokenProvider`.
+- Account-link behavior is email-based: if Apple collides with an existing Google account, users are prompted to sign in with Google first and then link Apple.
+- Backend canonicalizes authenticated users by verified token email so Google/Apple sign-ins with the same email write to the same Firestore user record.
+- Post-auth routing uses backend profile completion (`isProfileComplete`) so users with incomplete profile data are sent through onboarding instead of landing in `HomeView`.
 - Settings includes a functional `Sign Out` action in `Unstoppable/HomeView.swift` and routes back to `WelcomeView`.
 - If bundle ID changes, regenerate Firebase iOS config (`GoogleService-Info.plist`) for the new app and re-check `CFBundleURLSchemes` (Google reversed client ID) in `Unstoppable/Info.plist`.
 
@@ -101,7 +108,7 @@ Build-time config keys (in project build settings / Info.plist injection):
 - `REVENUECAT_ENABLE_BACKEND_SYNC` (`NO` default, set `YES` to enable backend snapshot sync)
 
 Current defaults:
-- Debug: supports dev auth (`X-User-Id`, default `dev-user-001`) and switches to bearer token auth after Google sign-in.
+- Debug: supports dev auth (`X-User-Id`, default `dev-user-001`) and switches to bearer token auth after Apple/Google sign-in.
 - Release: points to `https://api.unstoppable.app` with dev auth disabled.
 
 ## Data Model and Sync Behavior
@@ -127,7 +134,7 @@ Sync behavior:
 - `POST /v1/progress/daily`
   - Accepts `date` (`yyyy-MM-dd`), `completed`, `total`, `completedTaskIds`.
 - `GET /v1/bootstrap`
-  - Returns: `userId`, `profile`, `routine`, `streak`, `progress.today`, and `subscription`.
+  - Returns: `userId`, `profile`, `isProfileComplete`, `profileCompletion`, `routine`, `streak`, `progress.today`, and `subscription`.
 - `GET /v1/user/subscription`
   - Returns latest normalized subscription snapshot for current authenticated user.
 - `POST /v1/payments/subscription/snapshot`
@@ -154,6 +161,7 @@ Debug failure logs to watch:
 - `syncUserProfile(...) failed: ...`
 - `syncCurrentRoutine failed: ...`
 - `syncDailyProgress failed: ...`
+- `apple sign-in failed: ...`
 - `google sign-in failed: ...`
 - `RevenueCat offerings load failed: ...`
 - `RevenueCat purchase failed: ...`
