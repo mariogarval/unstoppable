@@ -134,16 +134,6 @@ def main() -> int:
     print(f"Target user uid: {uid}")
     print(f"User root: users/{uid}")
 
-    print("\n=== Profile Doc (paymentOption focus) ===")
-    profile_doc = user_ref.collection("profile").document("self").get()
-    profile_path = f"users/{uid}/profile/self"
-    print(f"Path: {profile_path}")
-    print(f"Exists: {profile_doc.exists}")
-    if profile_doc.exists:
-        profile_data = profile_doc.to_dict() or {}
-        profile_payment_option = profile_data.get("paymentOption")
-        print(f"paymentOption: {_json_safe(profile_payment_option)}")
-
     print("\n=== Subscription Doc ===")
     subscription_doc = user_ref.collection("payments").document("subscription").get()
     subscription_path = f"users/{uid}/payments/subscription"

@@ -175,12 +175,11 @@ Backend-required fields:
 - `paymentOption` (non-empty string)
 
 `paymentOption` resolution for completion is:
-- primary: `users/{uid}/payments/subscription.paymentOption`
-- fallback: `users/{uid}/profile/self.paymentOption`
+- `users/{uid}/payments/subscription.paymentOption`
 
 Write paths:
-- `POST /v1/user/profile` writes both canonical subscription and profile mirror.
-- `POST /v1/payments/subscription/snapshot` and RevenueCat webhook writes canonical subscription and backfills profile mirror when possible.
+- `POST /v1/user/profile` writes canonical subscription value when `paymentOption` is provided.
+- `POST /v1/payments/subscription/snapshot` and RevenueCat webhook write canonical subscription value.
 
 If any are missing, backend returns:
 - `isProfileComplete = false`
@@ -211,7 +210,7 @@ cd backend/api
 python scripts/reset_user_profile.py --email your-email@example.com
 ```
 
-Reset payment status (`users/{uid}/payments/*`) and clear `users/{uid}/profile/self.paymentOption`:
+Reset payment status (`users/{uid}/payments/*`):
 ```bash
 cd backend/api
 python scripts/reset_user_payments.py --email your-email@example.com
@@ -235,7 +234,7 @@ python scripts/reset_user_payments.py --email your-email@example.com --dry-run
 python scripts/reset_user_onboarding.py --email your-email@example.com --dry-run
 ```
 
-Backfill canonical `paymentOption` from profile data:
+Legacy one-time backfill for older mirrored data:
 ```bash
 cd backend/api
 python scripts/migrate_payment_option_to_subscription.py --all
@@ -283,4 +282,4 @@ You are in a healthy state when all are true:
 3. Post sign-in `GET /v1/bootstrap` succeeds and no fallback error message appears.
 4. Profile writes are visible at `users/{canonical_uid}/profile/self`.
 5. Same-email Google and Apple logins resolve to one canonical user profile.
-6. `paymentOption` is present in `users/{canonical_uid}/payments/subscription` (profile mirror may also exist).
+6. `paymentOption` is present in `users/{canonical_uid}/payments/subscription`.

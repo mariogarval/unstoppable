@@ -3,7 +3,6 @@
 
 This script deletes documents under:
   - users/{uid}/payments/*
-  - users/{uid}/profile/self.paymentOption
 
 Optional:
   - payments/revenuecat/events/* for the same user id
@@ -107,29 +106,6 @@ def _delete_revenuecat_event_docs(db: Any, *, uid: str, dry_run: bool) -> int:
     return deleted
 
 
-def _reset_profile_payment_option(db: Any, *, uid: str, dry_run: bool) -> bool:
-    from firebase_admin import firestore
-
-    profile_ref = db.collection("users").document(uid).collection("profile").document("self")
-    profile_doc = profile_ref.get()
-    if not profile_doc.exists:
-        return False
-
-    profile_data = profile_doc.to_dict() or {}
-    has_payment_option = "paymentOption" in profile_data
-    if dry_run or not has_payment_option:
-        return has_payment_option
-
-    profile_ref.set(
-        {
-            "paymentOption": firestore.DELETE_FIELD,
-            "updatedAt": firestore.SERVER_TIMESTAMP,
-        },
-        merge=True,
-    )
-    return True
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Reset payment data under users/{uid}/payments.")
     identity = parser.add_mutually_exclusive_group(required=True)
@@ -159,14 +135,6 @@ def main() -> int:
     deleted_payments = _delete_collection_docs(db, payments_ref, dry_run=args.dry_run)
     action = "Would delete" if args.dry_run else "Deleted"
     print(f"{action} {deleted_payments} doc(s) in {payments_path}")
-
-    profile_path = f"users/{uid}/profile/self"
-    payment_option_reset = _reset_profile_payment_option(db, uid=uid, dry_run=args.dry_run)
-    profile_action = "Would reset" if args.dry_run else "Reset"
-    if payment_option_reset:
-        print(f"{profile_action} paymentOption in {profile_path}")
-    else:
-        print(f"No paymentOption field found in {profile_path}")
 
     if args.clear_webhook_events:
         deleted_events = _delete_revenuecat_event_docs(db, uid=uid, dry_run=args.dry_run)

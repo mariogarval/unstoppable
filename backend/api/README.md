@@ -34,10 +34,9 @@ Bootstrap profile completion:
   - `profileCompletion.isComplete` (boolean)
   - `profileCompletion.missingRequiredFields` (array)
 - Effective `paymentOption` for completion is resolved from:
-  - primary: `users/{uid}/payments/subscription.paymentOption`
-  - fallback: `users/{uid}/profile/self.paymentOption`
-- `POST /v1/user/profile` with `paymentOption` writes canonical subscription value and profile mirror.
-- `POST /v1/payments/subscription/snapshot` and RevenueCat webhook sync also backfill `users/{uid}/profile/self.paymentOption` when it can be inferred.
+  - `users/{uid}/payments/subscription.paymentOption`
+- `POST /v1/user/profile` with `paymentOption` writes canonical subscription value.
+- `POST /v1/payments/subscription/snapshot` and RevenueCat webhook sync write canonical subscription value.
 
 RevenueCat webhook auth:
 - Set `REVENUECAT_WEBHOOK_AUTH=<shared-secret>`.
@@ -98,7 +97,7 @@ export GOOGLE_CLOUD_PROJECT=unstoppable-app-dev
 python scripts/check_user_payments.py --email your-email@example.com
 ```
 
-Reset payment/subscription status (`users/{uid}/payments/*`) and clear `users/{uid}/profile/self.paymentOption`:
+Reset payment/subscription status (`users/{uid}/payments/*`):
 
 ```bash
 cd backend/api
@@ -130,7 +129,7 @@ python scripts/reset_user_payments.py --email your-email@example.com --dry-run
 python scripts/reset_user_onboarding.py --email your-email@example.com --dry-run
 ```
 
-Backfill canonical `paymentOption` in `users/{uid}/payments/subscription` from existing profile values:
+Legacy one-time backfill for older mirrored data: copy `paymentOption` from profile into canonical subscription:
 
 ```bash
 cd backend/api

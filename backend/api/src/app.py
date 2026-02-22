@@ -147,14 +147,10 @@ def _coerce_payment_option_from_product_id(value: Any) -> str | None:
     return None
 
 
-def _effective_payment_option(
-    profile: dict[str, Any], subscription: dict[str, Any] | None = None
-) -> str | None:
+def _effective_payment_option(subscription: dict[str, Any] | None = None) -> str | None:
     subscription_data = subscription if isinstance(subscription, dict) else {}
     from_subscription = _coerce_payment_option(subscription_data.get("paymentOption"))
-    if from_subscription:
-        return from_subscription
-    return _coerce_payment_option(profile.get("paymentOption"))
+    return from_subscription
 
 
 def _profile_completion(
@@ -170,7 +166,7 @@ def _profile_completion(
         missing.append("termsAccepted")
     if profile.get("termsOver16Accepted") is not True:
         missing.append("termsOver16Accepted")
-    if not _effective_payment_option(profile, subscription):
+    if not _effective_payment_option(subscription):
         missing.append("paymentOption")
 
     return len(missing) == 0, missing
@@ -342,20 +338,18 @@ def upsert_user_profile() -> tuple[Any, int]:
     normalized_payment_option: str | None = None
     if "paymentOption" in profile_data:
         normalized_payment_option = _coerce_payment_option(profile_data["paymentOption"])
-        if normalized_payment_option:
-            profile_data["paymentOption"] = normalized_payment_option
-        else:
-            profile_data.pop("paymentOption", None)
-    profile_data["updatedAt"] = firestore.SERVER_TIMESTAMP
+    profile_data.pop("paymentOption", None)
 
     db = _get_db()
-    profile_ref = (
-        db.collection("users")
-        .document(user_id)
-        .collection("profile")
-        .document("self")
-    )
-    profile_ref.set(profile_data, merge=True)
+    if profile_data:
+        profile_data["updatedAt"] = firestore.SERVER_TIMESTAMP
+        profile_ref = (
+            db.collection("users")
+            .document(user_id)
+            .collection("profile")
+            .document("self")
+        )
+        profile_ref.set(profile_data, merge=True)
     if normalized_payment_option:
         (
             db.collection("users")
@@ -560,20 +554,6 @@ def upsert_subscription_snapshot() -> tuple[Any, int]:
         .document("subscription")
         .set(snapshot, merge=True)
     )
-    if normalized_payment_option:
-        (
-            db.collection("users")
-            .document(user_id)
-            .collection("profile")
-            .document("self")
-            .set(
-                {
-                    "paymentOption": normalized_payment_option,
-                    "updatedAt": firestore.SERVER_TIMESTAMP,
-                },
-                merge=True,
-            )
-        )
     return jsonify({"ok": True, "userId": user_id}), 200
 
 
@@ -694,20 +674,6 @@ def revenuecat_webhook() -> tuple[Any, int]:
         "updatedAt": firestore.SERVER_TIMESTAMP,
     }
     subscription_ref.set(normalized, merge=True)
-    if payment_option:
-        (
-            db.collection("users")
-            .document(canonical_app_user_id)
-            .collection("profile")
-            .document("self")
-            .set(
-                {
-                    "paymentOption": payment_option,
-                    "updatedAt": firestore.SERVER_TIMESTAMP,
-                },
-                merge=True,
-            )
-        )
 
     return jsonify({"ok": True, "eventId": event_id}), 200
 
