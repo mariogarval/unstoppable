@@ -249,7 +249,7 @@ final class RevenueCatManager: NSObject, ObservableObject {
     }
 
     private func makePaywallPackage(from package: Package) -> PaywallPackage {
-        let paymentOption = paymentOption(for: package.packageType)
+        let paymentOption = paymentOption(for: package)
         let title = title(for: package)
         let detail = detail(for: package)
 
@@ -261,6 +261,16 @@ final class RevenueCatManager: NSObject, ObservableObject {
             paymentOption: paymentOption,
             isRecommended: package.packageType == .annual
         )
+    }
+
+    private func paymentOption(for package: Package) -> String {
+        if let fromProductID = paymentOption(forIdentifier: package.storeProduct.productIdentifier) {
+            return fromProductID
+        }
+        if let fromPackageID = paymentOption(forIdentifier: package.identifier) {
+            return fromPackageID
+        }
+        return paymentOption(for: package.packageType)
     }
 
     private func paymentOption(for packageType: PackageType) -> String {
@@ -350,10 +360,18 @@ final class RevenueCatManager: NSObject, ObservableObject {
         }
 
         if let package = packageByID.values.first(where: { $0.storeProduct.productIdentifier == rawProductID }) {
-            return paymentOption(for: package.packageType)
+            return paymentOption(for: package)
         }
 
-        let normalized = rawProductID.lowercased()
+        return paymentOption(forIdentifier: rawProductID)
+    }
+
+    private func paymentOption(forIdentifier identifier: String?) -> String? {
+        guard let identifier = identifier?.trimmingCharacters(in: .whitespacesAndNewlines), !identifier.isEmpty else {
+            return nil
+        }
+
+        let normalized = identifier.lowercased()
         if normalized.contains("annual") || normalized.contains("yearly") || normalized.contains("year") {
             return "annual"
         }

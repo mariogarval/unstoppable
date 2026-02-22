@@ -594,9 +594,10 @@ def upsert_subscription_snapshot() -> tuple[Any, int]:
         if parsed is not None:
             snapshot["gracePeriodExpiresAt"] = parsed
 
-    normalized_payment_option = _coerce_payment_option(snapshot.get("paymentOption"))
+    # Prefer product-id-derived option so paymentOption stays aligned with RevenueCat SKU naming.
+    normalized_payment_option = _coerce_payment_option_from_product_id(snapshot.get("productId"))
     if normalized_payment_option is None:
-        normalized_payment_option = _coerce_payment_option_from_product_id(snapshot.get("productId"))
+        normalized_payment_option = _coerce_payment_option(snapshot.get("paymentOption"))
     if normalized_payment_option:
         snapshot["paymentOption"] = normalized_payment_option
     else:
@@ -651,9 +652,9 @@ def revenuecat_webhook() -> tuple[Any, int]:
     store = str(event.get("store", "")).strip()
     period_type = str(event.get("period_type", "")).strip()
     payment_option = (
-        _coerce_payment_option(event.get("payment_option"))
+        _coerce_payment_option_from_product_id(product_id)
+        or _coerce_payment_option(event.get("payment_option"))
         or _coerce_payment_option(event.get("product_id"))
-        or _coerce_payment_option_from_product_id(product_id)
     )
 
     expiration_at = _parse_event_datetime(event, "expiration_at_ms", "expiration_at")
