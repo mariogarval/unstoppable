@@ -14,6 +14,7 @@ Optional environment variables:
   REGION=us-central1
   SERVICE_NAME=unstoppable-api
   ALLOW_UNAUTHENTICATED=0
+  ENSURE_PUBLIC_INVOKER=1
   FIRESTORE_PROJECT=<defaults to PROJECT_ID>
   ALLOW_DEV_USER_HEADER=0
 EOF
@@ -29,6 +30,7 @@ PROJECT_ID="${1:-${PROJECT_ID:-unstoppable-app-dev}}"
 REGION="${REGION:-us-central1}"
 SERVICE_NAME="${SERVICE_NAME:-unstoppable-api}"
 ALLOW_UNAUTHENTICATED="${ALLOW_UNAUTHENTICATED:-0}"
+ENSURE_PUBLIC_INVOKER="${ENSURE_PUBLIC_INVOKER:-1}"
 FIRESTORE_PROJECT="${FIRESTORE_PROJECT:-$PROJECT_ID}"
 ALLOW_DEV_USER_HEADER="${ALLOW_DEV_USER_HEADER:-0}"
 
@@ -56,3 +58,12 @@ else
 fi
 
 "${deploy_cmd[@]}"
+
+if [[ "$ENSURE_PUBLIC_INVOKER" == "1" ]]; then
+  gcloud run services add-iam-policy-binding "$SERVICE_NAME" \
+    --project "$PROJECT_ID" \
+    --region "$REGION" \
+    --member="allUsers" \
+    --role="roles/run.invoker" \
+    >/dev/null
+fi

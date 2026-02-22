@@ -3,7 +3,49 @@
 **Last Updated**: 2026-02-21
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 8 markdown documents
+**Files**: 10 markdown documents
+
+---
+
+## February 21, 2026 - Stable API Endpoint Revert
+
+### `API_BASE_URL_STABLE_ENDPOINT_20260221.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-21 | **Status**: Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**Reverted app API endpoint configuration to the stable Cloud Run service URL for Debug and fallback resolution.**
+
+**Problem Solved**: Removed dependency on revision-specific hostnames and aligned the app with the stable service URL strategy.
+
+**Key Results**:
+- Set Debug `API_BASE_URL` in `Unstoppable.xcodeproj/project.pbxproj` to `https://unstoppable-api-1094359674860.us-central1.run.app`.
+- Set runtime fallback in `Unstoppable/Networking/APIClient.swift` to the same stable URL.
+- Revalidated with `xcodebuild` and `./scripts/run_ios_sim.sh \"iPhone 17 Pro\"`.
+
+**Next Steps**: Re-test sign-in and continue token-verification troubleshooting if bootstrap still fails.
+
+**Related**: `SIGNIN_BOOTSTRAP_API_BASE_URL_20260221.md` (prior endpoint troubleshooting)
+
+---
+
+## February 21, 2026 - Sign-In Bootstrap URL Alignment
+
+### `SIGNIN_BOOTSTRAP_API_BASE_URL_20260221.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-21 | **Status**: Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**Aligned Debug and fallback API base URLs with the current Cloud Run service URL used by the backend.**
+
+**Problem Solved**: Removed a stale API endpoint reference that could break post-auth bootstrap loading and trigger the welcome-screen sign-in failure banner.
+
+**Key Results**:
+- Updated Debug `API_BASE_URL` in `Unstoppable.xcodeproj/project.pbxproj`.
+- Updated fallback URL in `Unstoppable/Networking/APIClient.swift`.
+- Revalidated with `xcodebuild` and `./scripts/run_ios_sim.sh \"iPhone 17 Pro\"`.
+
+**Next Steps**: Re-run Google sign-in and verify bootstrap succeeds end-to-end against the updated endpoint.
+
+**Related**: `UNSTOPPABLE_LOGS_20260212.md` (earlier networking URL/auth rollout)
 
 ---
 
@@ -172,6 +214,8 @@
 
 | Topic | Location |
 |-------|----------|
+| Stable API endpoint revert | `API_BASE_URL_STABLE_ENDPOINT_20260221.md` |
+| Sign-in bootstrap URL fix | `SIGNIN_BOOTSTRAP_API_BASE_URL_20260221.md` |
 | Fake manager split | `FAKE_PAYMENT_MANAGER_SPLIT_20260221.md` |
 | Profile completion routing | `PROFILE_COMPLETION_ROUTING_20260221.md` |
 | Bundle ID alignment | `BUNDLE_ID_MIGRATION_20260217.md` |
