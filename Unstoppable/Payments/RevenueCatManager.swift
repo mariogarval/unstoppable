@@ -100,13 +100,14 @@ final class RevenueCatManager: NSObject, ObservableObject {
         return hasActiveEntitlement(customerInfo)
     }
 
-    func logIn(appUserID: String) async {
+    func logIn(appUserID: String, email: String? = nil) async {
         let trimmedID = appUserID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedID.isEmpty else { return }
 
         guard ensureConfigured() else { return }
         do {
             let (customerInfo, _) = try await Purchases.shared.logIn(trimmedID)
+            syncEmailAttribute(email)
             apply(customerInfo: customerInfo)
         } catch {
 #if DEBUG
@@ -205,6 +206,16 @@ final class RevenueCatManager: NSObject, ObservableObject {
             configureIfNeeded()
         }
         return isConfigured
+    }
+
+    private func syncEmailAttribute(_ rawEmail: String?) {
+        let normalized = rawEmail?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        guard let normalized, !normalized.isEmpty else {
+            return
+        }
+        Purchases.shared.attribution.setEmail(normalized)
     }
 
     private func configuredAPIKey() -> String? {
