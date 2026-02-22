@@ -179,22 +179,7 @@ Debug failure logs to watch:
 - `RevenueCat purchase failed: ...`
 - `RevenueCat restore failed: ...`
 
-## Local Shell Output Logs (Reusable)
+## Execution Notes
 
-Use `_shell_output/` at repo root for local-only execution logs (not committed).
-
-Initialize logging helpers:
-
-```bash
-source /Users/luisgalvez/.codex/skills/persistent_shell_output/scripts/persistent_shell_output.sh
-```
-
-Log command steps and manual actions:
-
-```bash
-shell_step GA-00 git status --short
-shell_note "[GA-11] Enabled Google provider in Firebase Console"
-```
-
-Current local log examples:
-- `_shell_output/SHELL_OUTPUT_SESSION_20260212_222218_pid84179.log`
+No persistent shell-output workflow is required in this repository.
+Create command or session logs only when explicitly requested.

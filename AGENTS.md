@@ -7,9 +7,9 @@ This file defines how coding agents should operate in this repository.
 1. Confirm location and branch:
    - `cd /Users/luisgalvez/Projects/unstoppable`
    - `git branch --show-current`
-2. Log the first baseline checks:
-   - `shell_step QS-01 git status --short`
-   - `shell_step QS-02 git branch --show-current`
+2. Capture baseline checks:
+   - `git status --short`
+   - `git branch --show-current`
 3. Validate iOS app before handoff:
    - `xcodebuild -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj -scheme Unstoppable -configuration Debug -destination "platform=iOS Simulator,name=iPhone 17 Pro" build`
    - `./scripts/run_ios_sim.sh "iPhone 17 Pro"`
@@ -46,6 +46,7 @@ Rules:
 - Choose the narrowest scope that contains the changes.
 - If changes span app + backend, log under repo scope.
 - Maintain `__AGENT_INDEX.md` in the chosen scope.
+- Only create or update `agent_logs` files when explicitly requested by the user.
 
 ## iOS Build and Launch Workflow
 
