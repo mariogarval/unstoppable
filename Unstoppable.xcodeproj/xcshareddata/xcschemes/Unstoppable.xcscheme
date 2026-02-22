@@ -50,6 +50,9 @@
             ReferencedContainer = "container:Unstoppable.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <StoreKitConfigurationFileReference
+         identifier = "../Unstoppable/StoreKit/UnstoppableLocal.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

@@ -62,6 +62,7 @@ struct SubscriptionSnapshotUpsertRequest: Codable, Sendable {
     let entitlementIds: [String]
     let isActive: Bool
     let productId: String?
+    let paymentOption: String?
     let store: String?
     let periodType: String?
     let expirationAt: Date?
@@ -76,6 +77,7 @@ struct BootstrapResponse: Codable, Sendable {
     let routine: [String: JSONValue]
     let streak: [String: JSONValue]
     let progress: BootstrapProgress
+    let subscription: [String: JSONValue]?
 }
 
 struct BootstrapProfileCompletion: Codable, Sendable {

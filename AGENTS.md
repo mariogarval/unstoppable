@@ -7,22 +7,12 @@ This file defines how coding agents should operate in this repository.
 1. Confirm location and branch:
    - `cd /Users/luisgalvez/Projects/unstoppable`
    - `git branch --show-current`
-2. Start persistent shell output logging:
-   - `source /Users/luisgalvez/.codex/skills/persistent_shell_output/scripts/persistent_shell_output.sh`
-3. Log the first baseline checks:
-   - `shell_step QS-01 git status --short`
-   - `shell_step QS-02 git branch --show-current`
-4. For each meaningful command, use:
-   - `shell_step <STEP-ID> <command with args>`
-5. For each manual/UI action or decision, use:
-   - `shell_note "[STEP-ID] message"`
-6. Validate iOS app before handoff:
+2. Capture baseline checks:
+   - `git status --short`
+   - `git branch --show-current`
+3. Validate iOS app before handoff:
    - `xcodebuild -project /Users/luisgalvez/Projects/unstoppable/Unstoppable.xcodeproj -scheme Unstoppable -configuration Debug -destination "platform=iOS Simulator,name=iPhone 17 Pro" build`
    - `./scripts/run_ios_sim.sh "iPhone 17 Pro"`
-7. Update project memory docs:
-   - Use the `agent-logs` skill.
-   - Add or update session file under the correct scoped `agent_logs` folder.
-   - Update matching `__AGENT_INDEX.md` entry.
 
 ## Scope
 
@@ -36,6 +26,7 @@ This file defines how coding agents should operate in this repository.
 - Prefer small, targeted changes and validate with real build/launch checks.
 - Keep all implementation and troubleshooting steps documented.
 - Do not remove or rewrite prior user changes unless explicitly requested.
+- Do not stop at `xcodebuild` verification alone. After building, install and launch the latest app binary in Simulator.
 
 ## Planning and Clarifications
 
@@ -43,33 +34,9 @@ This file defines how coding agents should operate in this repository.
 - Ask clarification questions to improve the result.
 - Wait for the answers to clarification questions before starting work.
 
-## Required Session Logging
+## Agent Session Logs
 
-For implementation sessions, keep a command/action log in:
-- `/Users/luisgalvez/Projects/unstoppable/_shell_output`
-
-Use the local helper:
-
-```bash
-source /Users/luisgalvez/.codex/skills/persistent_shell_output/scripts/persistent_shell_output.sh
-```
-
-Then log each step:
-
-```bash
-shell_step STEP-ID <command with args>
-shell_note "[STEP-ID] manual action / decision / result"
-```
-
-Rules:
-- Log commands with args and full output.
-- Log manual console/UI actions with `shell_note`.
-- Use one persistent shell and one log file per shell session.
-- Keep `_shell_output` local-only; do not commit it.
-
-## Agent Session Notes (Repository Memory)
-
-Use the `agent-logs` skill for all persisted session memory updates in this repository.
+When using `agent-logs` skill
 
 Scope routing for this repo:
 - App scope: `/Users/luisgalvez/Projects/unstoppable/Unstoppable/agent_logs`
@@ -80,11 +47,16 @@ Rules:
 - Choose the narrowest scope that contains the changes.
 - If changes span app + backend, log under repo scope.
 - Maintain `__AGENT_INDEX.md` in the chosen scope.
+- Only create or update `agent_logs` files when explicitly requested by the user.
 
 ## iOS Build and Launch Workflow
 
 Preferred simulator:
 - `iPhone 17 Pro`
+
+Execution requirement:
+- Build validation must be followed by simulator install/launch in the same workflow (no build-only handoff).
+- Prefer `./scripts/run_ios_sim.sh "iPhone 17 Pro"` for this because it handles build, install, and launch.
 
 Preferred launch path:
 

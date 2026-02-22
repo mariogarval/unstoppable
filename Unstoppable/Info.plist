@@ -43,6 +43,8 @@
 	<string>$(REVENUECAT_ENABLE_BACKEND_SYNC)</string>
 	<key>REVENUECAT_IOS_API_KEY</key>
 	<string>$(REVENUECAT_IOS_API_KEY)</string>
+	<key>REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON</key>
+	<string>$(REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

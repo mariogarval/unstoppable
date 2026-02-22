@@ -90,19 +90,12 @@ export FIREBASE_PROJECT_ID="unstoppable-app-dev"
 export API_BASE_URL_DEV="https://unstoppable-api-1094359674860.us-central1.run.app"
 ```
 
-## Execution Logging Standard
-Use repository-local shell logging for each step.
-
-```bash
-source /Users/luisgalvez/.codex/skills/persistent_shell_output/scripts/persistent_shell_output.sh
-shell_step AA-00 git status --short
-shell_note "[AA-11] Enabled Apple provider in Firebase Authentication"
-```
+## Execution Documentation Standard
+Use AA step IDs throughout the plan.
 
 Rules:
-- Use `shell_step AA-XX ...` for meaningful commands.
-- Use `shell_note` for manual console actions (Firebase Console, Apple Developer portal, Xcode capabilities UI).
-- Keep logs in `_shell_output/` and do not commit them.
+- Run commands directly (no shell logging wrapper required).
+- Record manual console actions as `ACTION [AA-XX]: ...` notes only when documentation is requested.
 
 ## Phase Plan (With Step IDs)
 
@@ -110,22 +103,22 @@ Rules:
 
 ### AA-00: Capture baseline
 ```bash
-shell_step AA-00 git -C /Users/luisgalvez/Projects/unstoppable status --short
-shell_step AA-00A git -C /Users/luisgalvez/Projects/unstoppable branch --show-current
+git -C /Users/luisgalvez/Projects/unstoppable status --short
+git -C /Users/luisgalvez/Projects/unstoppable branch --show-current
 ```
 Acceptance:
 - Starting state and branch logged.
 
 ### AA-01: Create working branch
 ```bash
-shell_step AA-01 git -C /Users/luisgalvez/Projects/unstoppable checkout -b codex/apple-auth-firebase
+git -C /Users/luisgalvez/Projects/unstoppable checkout -b codex/apple-auth-firebase
 ```
 Acceptance:
 - New branch created and active.
 
 ### AA-02: Baseline build
 ```bash
-shell_step AA-02 xcodebuild -project "$XCODE_PROJECT_PATH" -scheme "$XCODE_SCHEME" -configuration Debug -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" build
+xcodebuild -project "$XCODE_PROJECT_PATH" -scheme "$XCODE_SCHEME" -configuration Debug -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" build
 ```
 Acceptance:
 - Baseline build succeeds before auth changes.
@@ -138,9 +131,7 @@ Manual actions:
 - Xcode target signing/capabilities: add `Sign In with Apple` if missing.
 
 Log example:
-```bash
-shell_note "[AA-10] Verified Apple capability enabled for $IOS_BUNDLE_ID in Apple Developer + Xcode"
-```
+`ACTION [AA-10]: Verified Apple capability enabled for $IOS_BUNDLE_ID in Apple Developer + Xcode.`
 Acceptance:
 - Capability enabled at both provisioning and target levels.
 
@@ -150,9 +141,7 @@ Manual actions:
 - Configure required Apple details (Team ID, Key ID, private key, Service ID) if not already configured.
 
 Log example:
-```bash
-shell_note "[AA-11] Enabled Apple provider in Firebase Auth for $FIREBASE_PROJECT_ID"
-```
+`ACTION [AA-11]: Enabled Apple provider in Firebase Auth for $FIREBASE_PROJECT_ID.`
 Acceptance:
 - Apple provider shows enabled in Firebase Auth.
 
@@ -162,9 +151,7 @@ Manual checks:
 - Confirm Apple/Firebase redirect path consistency (Firebase handler endpoint).
 
 Log example:
-```bash
-shell_note "[AA-12] Verified Apple/Firebase redirect and auth domain configuration"
-```
+`ACTION [AA-12]: Verified Apple/Firebase redirect and auth domain configuration.`
 Acceptance:
 - No provider-misconfiguration warnings in Firebase console.
 
@@ -226,15 +213,15 @@ Acceptance:
 
 ### AA-30: Static checks and build
 ```bash
-shell_step AA-30 rg -n "SignInWithAppleButton|apple.com|ASAuthorization|nonce|accountExistsWithDifferentCredential" Unstoppable -S
-shell_step AA-30A xcodebuild -project "$XCODE_PROJECT_PATH" -scheme "$XCODE_SCHEME" -configuration Debug -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" build
+rg -n "SignInWithAppleButton|apple.com|ASAuthorization|nonce|accountExistsWithDifferentCredential" Unstoppable -S
+xcodebuild -project "$XCODE_PROJECT_PATH" -scheme "$XCODE_SCHEME" -configuration Debug -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" build
 ```
 Acceptance:
 - Build succeeds and expected Apple auth hooks are present.
 
 ### AA-31: Runtime simulator/device validation
 ```bash
-shell_step AA-31 ./scripts/run_ios_sim.sh "$SIMULATOR_NAME"
+./scripts/run_ios_sim.sh "$SIMULATOR_NAME"
 ```
 Manual matrix:
 - New user signs in with Apple -> lands correctly (Nickname/Home based on bootstrap).
@@ -243,9 +230,7 @@ Manual matrix:
 - Sign out -> app returns to `WelcomeView`.
 
 Log example:
-```bash
-shell_note "[AA-31] Completed Apple sign-in matrix: new user, returning user, Google-link case, sign-out routing"
-```
+`ACTION [AA-31]: Completed Apple sign-in matrix: new user, returning user, Google-link case, sign-out routing.`
 Acceptance:
 - All matrix scenarios pass without auth regressions.
 
@@ -295,4 +280,4 @@ Acceptance:
 - Bearer token API mode works post-Apple sign-in.
 - Account linking by email works for Google-existing users where email match is valid.
 - Sign-out and session restore behaviors remain correct.
-- Build + simulator validation pass and are logged with AA step IDs.
+- Build + simulator validation pass and are documented with AA step IDs.

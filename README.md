@@ -41,8 +41,16 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Googl
 - `Unstoppable/onboarding/PaywallView.swift` now:
   - loads live offerings from RevenueCat when available
   - supports purchase + restore actions
-  - keeps existing static plan cards as fallback when offerings are unavailable
-- Current paywall selection sync still posts `paymentOption` through `POST /v1/user/profile`.
+  - keeps static plan cards as visual fallback, but primary CTA now retries offerings refresh instead of silently proceeding without a purchase package
+- Local purchase UX testing is available via StoreKit configuration:
+  - file: `Unstoppable/StoreKit/UnstoppableLocal.storekit`
+  - scheme wiring: `Unstoppable.xcodeproj/xcshareddata/xcschemes/Unstoppable.xcscheme`
+  - to use it, run the app from Xcode with the `Unstoppable` scheme (the scheme launch action loads the local StoreKit file)
+- Optional Settings test entry for paywall:
+  - feature flag key: `REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON`
+  - default: `NO`
+  - set to `YES` in `Unstoppable/Config/Secrets.local.xcconfig` to show `Open Paywall (Test)` button in Settings.
+- Paywall selection still posts `paymentOption` through `POST /v1/user/profile`, and backend now writes it canonically to `users/{uid}/payments/subscription.paymentOption` while mirroring profile for onboarding compatibility.
 - RevenueCat customer-info updates can sync subscription snapshot data to backend via `POST /v1/payments/subscription/snapshot` when `REVENUECAT_ENABLE_BACKEND_SYNC=YES` (default `NO` keeps payments app-side only).
 
 ## App Flow and Endpoint Calls
@@ -129,12 +137,16 @@ Sync behavior:
     - `nickname`, `ageGroup`, `gender`, `notificationsEnabled`
     - `termsAccepted`, `termsOver16Accepted`, `termsMarketingAccepted`
     - `paymentOption` (`annual`, `monthly`, `skip`, `dismiss`)
+  - `paymentOption` is written to:
+    - canonical: `users/{uid}/payments/subscription.paymentOption`
+    - mirror: `users/{uid}/profile/self.paymentOption`
 - `PUT /v1/routines/current`
   - Accepts `routineTime` (`HH:mm`) and full task snapshot.
 - `POST /v1/progress/daily`
   - Accepts `date` (`yyyy-MM-dd`), `completed`, `total`, `completedTaskIds`.
 - `GET /v1/bootstrap`
   - Returns: `userId`, `profile`, `isProfileComplete`, `profileCompletion`, `routine`, `streak`, `progress.today`, and `subscription`.
+  - Completion logic resolves `paymentOption` from subscription first, then profile fallback.
 - `GET /v1/user/subscription`
   - Returns latest normalized subscription snapshot for current authenticated user.
 - `POST /v1/payments/subscription/snapshot`
@@ -167,22 +179,7 @@ Debug failure logs to watch:
 - `RevenueCat purchase failed: ...`
 - `RevenueCat restore failed: ...`
 
-## Local Shell Output Logs (Reusable)
+## Execution Notes
 
-Use `_shell_output/` at repo root for local-only execution logs (not committed).
-
-Initialize logging helpers:
-
-```bash
-source /Users/luisgalvez/.codex/skills/persistent_shell_output/scripts/persistent_shell_output.sh
-```
-
-Log command steps and manual actions:
-
-```bash
-shell_step GA-00 git status --short
-shell_note "[GA-11] Enabled Google provider in Firebase Console"
-```
-
-Current local log examples:
-- `_shell_output/SHELL_OUTPUT_SESSION_20260212_222218_pid84179.log`
+No persistent shell-output workflow is required in this repository.
+Create command or session logs only when explicitly requested.

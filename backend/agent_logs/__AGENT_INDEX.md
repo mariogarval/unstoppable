@@ -3,7 +3,49 @@
 **Last Updated**: 2026-02-21
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 3 markdown documents
+**Files**: 5 markdown documents
+
+---
+
+## February 21, 2026 - Deploy Script Invoker Enforcement
+
+### `DEPLOY_SCRIPT_PUBLIC_INVOKER_20260221.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-21 | **Status**: Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**Added explicit post-deploy public invoker IAM binding to the Cloud Run deployment script.**
+
+**Problem Solved**: Prevented deployment-time IAM drift that caused app requests to fail with Cloud Run invocation authorization errors.
+
+**Key Results**:
+- Added `ENSURE_PUBLIC_INVOKER=1` default to `backend/api/deploy_cloud_run.sh`.
+- Added post-deploy `allUsers -> roles/run.invoker` enforcement command.
+- Verified script syntax with `bash -n backend/api/deploy_cloud_run.sh`.
+
+**Next Steps**: Keep `ENSURE_PUBLIC_INVOKER=1` for public mobile API environments.
+
+**Related**: `CLOUD_RUN_INVOKER_IAM_FIX_20260221.md` (manual IAM fix that prompted this hardening)
+
+---
+
+## February 21, 2026 - Cloud Run IAM Invoker Regression
+
+### `CLOUD_RUN_INVOKER_IAM_FIX_20260221.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-21 | **Status**: Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**Resolved post-deploy sign-in bootstrap failures by restoring Cloud Run public invoker access.**
+
+**Problem Solved**: API requests from the iOS app were rejected by Cloud Run IAM (`401 unauthorized to invoke`) before backend auth code executed.
+
+**Key Results**:
+- Confirmed request-log root cause on revision `unstoppable-api-00010-jlh`.
+- Added `allUsers -> roles/run.invoker` binding on `unstoppable-api`.
+- Verified updated IAM policy via `gcloud run services get-iam-policy`.
+
+**Next Steps**: Add an explicit post-deploy IAM verification step to prevent recurrence.
+
+**Related**: `CLOUD_SETUP_20260212.md` (Cloud Run baseline deployment)
 
 ---
 
@@ -71,6 +113,8 @@
 
 | Topic | Location |
 |-------|----------|
+| Deploy script public invoker enforcement | `DEPLOY_SCRIPT_PUBLIC_INVOKER_20260221.md` |
+| Cloud Run invoker IAM fix | `CLOUD_RUN_INVOKER_IAM_FIX_20260221.md` |
 | Canonical identity and profile completion | `IDENTITY_CANONICALIZATION_PROFILE_COMPLETION_20260221.md` |
 | RevenueCat webhook backend | `REVENUECAT_BACKEND_PHASE3_20260212.md` |
 | Cloud setup and deployment baseline | `CLOUD_SETUP_20260212.md` |

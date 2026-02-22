@@ -1,9 +1,94 @@
 # Agent Session Index
 
-**Last Updated**: 2026-02-21
+**Last Updated**: 2026-02-22
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 7 markdown documents
+**Files**: 11 markdown documents
+
+---
+
+## February 22, 2026 - Fake Flow Removal
+
+### `REMOVE_FAKE_PAYMENT_FLOW_20260222.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-22 | **Status**: Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**Removed fake paywall/manager runtime and fake-subscription feature flag, keeping only live RevenueCat integration.**
+
+**Problem Solved**: Eliminated transitional fake payment code and config now that RevenueCat test products are working.
+
+**Key Results**:
+- Rewired app/auth/paywall flow to use `RevenueCatManager.shared` directly.
+- Removed `REVENUECAT_FAKE_SUBSCRIPTION_MODE` from configs and Info.plist.
+- Deleted fake files and cleaned project references in `Unstoppable.xcodeproj/project.pbxproj`.
+- Revalidated with `xcodebuild` and `./scripts/run_ios_sim.sh "iPhone 17 Pro"`.
+
+**Next Steps**: Continue paywall validation against RevenueCat offerings and App Store Connect product setup.
+
+**Related**: `FAKE_PAYMENT_MANAGER_SPLIT_20260221.md` (feature that was removed)
+
+---
+
+## February 21, 2026 - Stable API Endpoint Revert
+
+### `API_BASE_URL_STABLE_ENDPOINT_20260221.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-21 | **Status**: Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**Reverted app API endpoint configuration to the stable Cloud Run service URL for Debug and fallback resolution.**
+
+**Problem Solved**: Removed dependency on revision-specific hostnames and aligned the app with the stable service URL strategy.
+
+**Key Results**:
+- Set Debug `API_BASE_URL` in `Unstoppable.xcodeproj/project.pbxproj` to `https://unstoppable-api-1094359674860.us-central1.run.app`.
+- Set runtime fallback in `Unstoppable/Networking/APIClient.swift` to the same stable URL.
+- Revalidated with `xcodebuild` and `./scripts/run_ios_sim.sh \"iPhone 17 Pro\"`.
+
+**Next Steps**: Re-test sign-in and continue token-verification troubleshooting if bootstrap still fails.
+
+**Related**: `SIGNIN_BOOTSTRAP_API_BASE_URL_20260221.md` (prior endpoint troubleshooting)
+
+---
+
+## February 21, 2026 - Sign-In Bootstrap URL Alignment
+
+### `SIGNIN_BOOTSTRAP_API_BASE_URL_20260221.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-21 | **Status**: Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**Aligned Debug and fallback API base URLs with the current Cloud Run service URL used by the backend.**
+
+**Problem Solved**: Removed a stale API endpoint reference that could break post-auth bootstrap loading and trigger the welcome-screen sign-in failure banner.
+
+**Key Results**:
+- Updated Debug `API_BASE_URL` in `Unstoppable.xcodeproj/project.pbxproj`.
+- Updated fallback URL in `Unstoppable/Networking/APIClient.swift`.
+- Revalidated with `xcodebuild` and `./scripts/run_ios_sim.sh \"iPhone 17 Pro\"`.
+
+**Next Steps**: Re-run Google sign-in and verify bootstrap succeeds end-to-end against the updated endpoint.
+
+**Related**: `UNSTOPPABLE_LOGS_20260212.md` (earlier networking URL/auth rollout)
+
+---
+
+## February 21, 2026 - Fake Manager Separation
+
+### `FAKE_PAYMENT_MANAGER_SPLIT_20260221.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-21 | **Status**: Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**Split fake payment behavior out of `RevenueCatManager` into a dedicated manager with runtime routing.**
+
+**Problem Solved**: Removed mixed live/fake concerns from `RevenueCatManager` and made mode-driven manager selection explicit for app init, auth lifecycle, and paywall rendering.
+
+**Key Results**:
+- Added `FakePaymentManager` and `PaymentRuntimeMode`/`PaymentManagerRouter` for clean runtime selection.
+- Updated app/auth/paywall call sites to use routed manager behavior; fake paywall now uses `FakePaymentManager.shared`.
+- Revalidated via `xcodebuild` and `./scripts/run_ios_sim.sh \"iPhone 17 Pro\"`.
+
+**Next Steps**: When RevenueCat offerings are stable, keep `REVENUECAT_FAKE_SUBSCRIPTION_MODE=off` and retain fake manager for deterministic API/testing scenarios.
+
+**Related**: `PAYMENTS_FAKE_SUBSCRIPTION_AND_CANONICAL_PAYMENT_OPTION_20260221.md` (broader fake mode + backend canonicalization)
 
 ---
 
@@ -151,6 +236,10 @@
 
 | Topic | Location |
 |-------|----------|
+| Stable API endpoint revert | `API_BASE_URL_STABLE_ENDPOINT_20260221.md` |
+| Remove fake payment flow | `REMOVE_FAKE_PAYMENT_FLOW_20260222.md` |
+| Sign-in bootstrap URL fix | `SIGNIN_BOOTSTRAP_API_BASE_URL_20260221.md` |
+| Fake manager split | `FAKE_PAYMENT_MANAGER_SPLIT_20260221.md` |
 | Profile completion routing | `PROFILE_COMPLETION_ROUTING_20260221.md` |
 | Bundle ID alignment | `BUNDLE_ID_MIGRATION_20260217.md` |
 | RevenueCat app-side default | `REVENUECAT_APP_SIDE_FLAG_20260213.md` |

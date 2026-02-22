@@ -1,9 +1,78 @@
 # Agent Session Index
 
-**Last Updated**: 2026-02-21
+**Last Updated**: 2026-02-22
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 6 markdown documents
+**Files**: 9 markdown documents
+
+---
+
+## February 22, 2026 - paymentOption Routing Split + Simulator Launch Guardrails
+
+### PAYMENTOPTION_SINGLE_SOURCE_ROUTING_AND_SIM_LAUNCH_GUARDRAILS_20260222.md ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-22 | **Status**: Implementation Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**This document captures subscription-only `paymentOption` ownership hardening, profile-vs-paywall route separation, paywall dismiss no-write behavior, and simulator latest-binary launch guardrails.**
+
+**Problem Solved**: Removed profile/payment coupling side effects, fixed routing for users with complete profile but missing payment selection, and eliminated stale-binary validation gaps in simulator runs.
+
+**Key Results**:
+- Updated backend/profile/payment contract so `paymentOption` remains canonical in `users/{uid}/payments/subscription` and paywall-only updates no longer bump profile timestamps.
+- Updated app routing to send profile-incomplete users through profile flow, and profile-complete + payment-missing users directly to `PaywallView`.
+- Changed paywall top-right dismiss (`x`) to route to `HomeView` without writing `paymentOption`.
+- Hardened `scripts/run_ios_sim.sh` to install and launch the newest built app artifact across repo `.build` and Xcode `DerivedData`.
+- Clarified `AGENTS.md` to require build plus simulator install/launch in a single validation flow.
+
+**Next Steps**: Keep using `./scripts/run_ios_sim.sh "iPhone 17 Pro"` for build verification and optionally add end-to-end UI assertions for profile/paywall routing states.
+
+**Related**: `agent_logs/PAYMENTS_FAKE_SUBSCRIPTION_AND_CANONICAL_PAYMENT_OPTION_20260221.md` (prior canonicalization stage)
+
+---
+
+## February 21, 2026 - Fake Subscription Mode + Canonical paymentOption
+
+### PAYMENTS_FAKE_SUBSCRIPTION_AND_CANONICAL_PAYMENT_OPTION_20260221.md ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-21 | **Status**: Implementation Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**This document captures implementation of debug fake-subscription mode in the iOS app and canonical `paymentOption` ownership in backend subscription documents.**
+
+**Problem Solved**: Unblocked payments API validation while live RevenueCat offerings remain unstable, and removed `paymentOption` ownership ambiguity by making subscription docs canonical with profile mirroring for onboarding compatibility.
+
+**Key Results**:
+- Added `REVENUECAT_FAKE_SUBSCRIPTION_MODE` (`off|active|inactive`) with deterministic fake offerings and snapshot sync behavior in `Unstoppable/Payments/RevenueCatManager.swift`.
+- Updated backend `POST /v1/user/profile` and bootstrap completion logic so `users/{uid}/payments/subscription.paymentOption` is canonical and profile remains a mirror.
+- Added migration utility `backend/api/scripts/migrate_payment_option_to_subscription.py` with dry-run/apply modes.
+- Updated docs/runbooks across `README.md`, `backend/api/README.md`, and `backend/api/API_RUNBOOK.md`.
+- Verified with `python3 -m py_compile`, `xcodebuild`, and `./scripts/run_ios_sim.sh "iPhone 17 Pro"`.
+
+**Next Steps**: Run migration script in dry-run and apply modes against target users, then validate payload parity in Firestore using fake `active` and `inactive` modes.
+
+**Related**: `agent_logs/REVENUECAT_OFFERINGS_BLOCKER_AND_PAYWALL_RETRY_20260221.md` (offerings blocker context)
+
+---
+
+## February 21, 2026 - RevenueCat Offerings Blocker + Paywall Retry Hardening
+
+### REVENUECAT_OFFERINGS_BLOCKER_AND_PAYWALL_RETRY_20260221.md 🔄 IN PROGRESS
+**Date**: 2026-02-21 | **Status**: In Progress
+**Branch**: `codex/payments-revenuecat-plan`
+
+**This document captures runtime validation after App Store metadata cleanup plus paywall fallback hardening when offerings are unavailable.**
+
+**Problem Solved**: Removed ambiguous paywall CTA behavior when RevenueCat offerings fail to load by shifting to explicit retry/loading UX instead of non-purchase fallback via the primary CTA.
+
+**Key Results**:
+- Confirmed runtime still blocked on RevenueCat offerings fetch (`OfferingsManager.Error`) despite status improving to `READY_TO_SUBMIT`.
+- Implemented retry/loading CTA behavior and explicit empty-offerings messaging in `PaywallView`.
+- Added local StoreKit config (`Unstoppable/StoreKit/UnstoppableLocal.storekit`) and wired the `Unstoppable` scheme for immediate local purchase UX testing.
+- Added a Settings `Open Paywall (Test)` entry behind `REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON` for targeted test access.
+- Re-validated build/install/launch flow on `iPhone 17 Pro`.
+
+**Next Steps**: Use local StoreKit flow for immediate purchase UX testing, then resolve RevenueCat/App Store Connect offering availability and run full live purchase/restore matrix.
+
+**Related**: `agent_logs/REVENUECAT_PAYMENTS_ROLLOUT_STATUS_20260217.md` (broader rollout context)
 
 ---
 
@@ -135,6 +204,9 @@
 
 | Topic | Location |
 |-------|----------|
+| paymentOption routing split + simulator latest-binary launch guardrails | `agent_logs/PAYMENTOPTION_SINGLE_SOURCE_ROUTING_AND_SIM_LAUNCH_GUARDRAILS_20260222.md` |
+| Fake subscription mode + canonical paymentOption ownership | `agent_logs/PAYMENTS_FAKE_SUBSCRIPTION_AND_CANONICAL_PAYMENT_OPTION_20260221.md` |
+| RevenueCat offerings blocker + paywall retry hardening | `agent_logs/REVENUECAT_OFFERINGS_BLOCKER_AND_PAYWALL_RETRY_20260221.md` |
 | Auth/bootstrap/profile troubleshooting hardening | `agent_logs/AUTH_BOOTSTRAP_PROFILE_SYNC_HARDENING_20260221.md` |
 | Apple auth Firebase rollout status | `agent_logs/APPLE_AUTH_FIREBASE_ROLLOUT_20260221.md` |
 | RevenueCat rollout status | `agent_logs/REVENUECAT_PAYMENTS_ROLLOUT_STATUS_20260217.md` |

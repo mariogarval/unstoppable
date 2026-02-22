@@ -76,7 +76,9 @@ ALLOW_UNAUTHENTICATED=1 backend/api/deploy_cloud_run.sh unstoppable-app-dev
 
 - **Observed behavior**: Routing looked partially correct because old profile data already existed.
 - **Resolution**: Added reset scripts for deterministic re-tests.
+  - `backend/api/scripts/check_user_payments.py`
   - `backend/api/scripts/reset_user_profile.py`
+  - `backend/api/scripts/reset_user_payments.py`
   - `backend/api/scripts/reset_user_onboarding.py`
 
 ---
@@ -172,6 +174,13 @@ Backend-required fields:
 - `termsOver16Accepted` (`true`)
 - `paymentOption` (non-empty string)
 
+`paymentOption` resolution for completion is:
+- `users/{uid}/payments/subscription.paymentOption`
+
+Write paths:
+- `POST /v1/user/profile` writes canonical subscription value when `paymentOption` is provided.
+- `POST /v1/payments/subscription/snapshot` and RevenueCat webhook write canonical subscription value.
+
 If any are missing, backend returns:
 - `isProfileComplete = false`
 - `profileCompletion.missingRequiredFields = [...]`
@@ -189,10 +198,27 @@ Set project:
 export GOOGLE_CLOUD_PROJECT=unstoppable-app-dev
 ```
 
+Inspect payment/subscription state and RevenueCat webhook events:
+```bash
+cd backend/api
+python scripts/check_user_payments.py --email your-email@example.com
+```
+
 Reset profile only:
 ```bash
 cd backend/api
 python scripts/reset_user_profile.py --email your-email@example.com
+```
+
+Reset payment status (`users/{uid}/payments/*`):
+```bash
+cd backend/api
+python scripts/reset_user_payments.py --email your-email@example.com
+```
+
+Optional: also clear RevenueCat webhook event docs for that user:
+```bash
+python scripts/reset_user_payments.py --email your-email@example.com --clear-webhook-events
 ```
 
 Reset full onboarding data (`profile`, `routine`, `progress`, `stats`, `payments`):
@@ -204,7 +230,15 @@ python scripts/reset_user_onboarding.py --email your-email@example.com
 Dry run:
 ```bash
 python scripts/reset_user_profile.py --email your-email@example.com --dry-run
+python scripts/reset_user_payments.py --email your-email@example.com --dry-run
 python scripts/reset_user_onboarding.py --email your-email@example.com --dry-run
+```
+
+Legacy one-time backfill for older mirrored data:
+```bash
+cd backend/api
+python scripts/migrate_payment_option_to_subscription.py --all
+python scripts/migrate_payment_option_to_subscription.py --all --apply
 ```
 
 Recommended verification after reset:
@@ -248,3 +282,4 @@ You are in a healthy state when all are true:
 3. Post sign-in `GET /v1/bootstrap` succeeds and no fallback error message appears.
 4. Profile writes are visible at `users/{canonical_uid}/profile/self`.
 5. Same-email Google and Apple logins resolve to one canonical user profile.
+6. `paymentOption` is present in `users/{canonical_uid}/payments/subscription`.

@@ -12,6 +12,7 @@ struct WelcomeView: View {
     @State private var isGoogleSigningIn = false
     @State private var authErrorMessage: String?
     @State private var navigateNickname = false
+    @State private var navigatePaywall = false
     @State private var navigateHome = false
     @State private var didBootstrap = false
     @State private var didHandleRestoreRouting = false
@@ -209,6 +210,9 @@ struct WelcomeView: View {
                 .navigationDestination(isPresented: $navigateNickname) {
                     NicknameView()
                 }
+                .navigationDestination(isPresented: $navigatePaywall) {
+                    PaywallView()
+                }
                 .navigationDestination(isPresented: $navigateHome) {
                     HomeView()
                 }
@@ -284,34 +288,48 @@ struct WelcomeView: View {
     private func routeAuthenticatedUser(using bootstrap: BootstrapResponse) {
         navigateHome = false
         navigateNickname = false
+        navigatePaywall = false
 
-        if isProfileComplete(bootstrap) {
-            navigateHome = true
+        if !isProfileFlowComplete(bootstrap) {
+            navigateNickname = true
             return
         }
 
-        navigateNickname = true
+        if !hasSelectedPaymentOption(bootstrap) {
+            navigatePaywall = true
+            return
+        }
+
+        navigateHome = true
     }
 
-    private func isProfileComplete(_ bootstrap: BootstrapResponse?) -> Bool {
+    private func isProfileFlowComplete(_ bootstrap: BootstrapResponse?) -> Bool {
         guard let bootstrap else {
             return false
         }
 
-        if let explicit = bootstrap.isProfileComplete {
-            return explicit
-        }
-        if let explicitFromObject = bootstrap.profileCompletion?.isComplete {
-            return explicitFromObject
+        if let missing = bootstrap.profileCompletion?.missingRequiredFields {
+            return !missing.contains(where: { $0 != "paymentOption" })
         }
 
         let hasNickname = hasProfileString("nickname", from: bootstrap)
         let hasNotificationsSelection = profileBool("notificationsEnabled", from: bootstrap) != nil
         let termsAccepted = profileBool("termsAccepted", from: bootstrap) == true
         let over16Accepted = profileBool("termsOver16Accepted", from: bootstrap) == true
-        let hasPaymentOption = hasProfileString("paymentOption", from: bootstrap)
 
-        return hasNickname && hasNotificationsSelection && termsAccepted && over16Accepted && hasPaymentOption
+        return hasNickname && hasNotificationsSelection && termsAccepted && over16Accepted
+    }
+
+    private func hasSelectedPaymentOption(_ bootstrap: BootstrapResponse?) -> Bool {
+        guard let bootstrap else {
+            return false
+        }
+
+        if let missing = bootstrap.profileCompletion?.missingRequiredFields {
+            return !missing.contains("paymentOption")
+        }
+
+        return hasSubscriptionString("paymentOption", from: bootstrap)
     }
 
     private func hasProfileString(_ key: String, from bootstrap: BootstrapResponse) -> Bool {
@@ -324,6 +342,13 @@ struct WelcomeView: View {
         guard let value = bootstrap.profile[key] else { return nil }
         guard case .bool(let boolValue) = value else { return nil }
         return boolValue
+    }
+
+    private func hasSubscriptionString(_ key: String, from bootstrap: BootstrapResponse) -> Bool {
+        guard let subscription = bootstrap.subscription else { return false }
+        guard let value = subscription[key] else { return false }
+        guard case .string(let str) = value else { return false }
+        return !str.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 

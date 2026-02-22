@@ -109,7 +109,53 @@ def _non_empty_string(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
-def _profile_completion(profile: dict[str, Any]) -> tuple[bool, list[str]]:
+def _coerce_payment_option(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().lower()
+    if not normalized:
+        return None
+
+    aliases = {
+        "annual": "annual",
+        "yearly": "annual",
+        "year": "annual",
+        "monthly": "monthly",
+        "month": "monthly",
+        "weekly": "weekly",
+        "week": "weekly",
+        "lifetime": "lifetime",
+        "life": "lifetime",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def _coerce_payment_option_from_product_id(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    product_id = value.strip().lower()
+    if not product_id:
+        return None
+    if "annual" in product_id or "yearly" in product_id or "year" in product_id:
+        return "annual"
+    if "monthly" in product_id or "month" in product_id:
+        return "monthly"
+    if "weekly" in product_id or "week" in product_id:
+        return "weekly"
+    if "lifetime" in product_id or "life" in product_id:
+        return "lifetime"
+    return None
+
+
+def _effective_payment_option(subscription: dict[str, Any] | None = None) -> str | None:
+    subscription_data = subscription if isinstance(subscription, dict) else {}
+    from_subscription = _coerce_payment_option(subscription_data.get("paymentOption"))
+    return from_subscription
+
+
+def _profile_completion(
+    profile: dict[str, Any], subscription: dict[str, Any] | None = None
+) -> tuple[bool, list[str]]:
     missing: list[str] = []
 
     if not _non_empty_string(profile.get("nickname")):
@@ -120,7 +166,7 @@ def _profile_completion(profile: dict[str, Any]) -> tuple[bool, list[str]]:
         missing.append("termsAccepted")
     if profile.get("termsOver16Accepted") is not True:
         missing.append("termsOver16Accepted")
-    if not _non_empty_string(profile.get("paymentOption")):
+    if not _effective_payment_option(subscription):
         missing.append("paymentOption")
 
     return len(missing) == 0, missing
@@ -289,16 +335,37 @@ def upsert_user_profile() -> tuple[Any, int]:
         "paymentOption",
     }
     profile_data = {k: payload[k] for k in allowed_fields if k in payload}
-    profile_data["updatedAt"] = firestore.SERVER_TIMESTAMP
+    normalized_payment_option: str | None = None
+    if "paymentOption" in profile_data:
+        normalized_payment_option = _coerce_payment_option(profile_data["paymentOption"])
+    profile_data.pop("paymentOption", None)
 
     db = _get_db()
-    profile_ref = (
-        db.collection("users")
-        .document(user_id)
-        .collection("profile")
-        .document("self")
-    )
-    profile_ref.set(profile_data, merge=True)
+    if profile_data:
+        profile_data["updatedAt"] = firestore.SERVER_TIMESTAMP
+        profile_ref = (
+            db.collection("users")
+            .document(user_id)
+            .collection("profile")
+            .document("self")
+        )
+        profile_ref.set(profile_data, merge=True)
+    if normalized_payment_option:
+        (
+            db.collection("users")
+            .document(user_id)
+            .collection("payments")
+            .document("subscription")
+            .set(
+                {
+                    "paymentOption": normalized_payment_option,
+                    "provider": "profile_sync",
+                    "source": "profile_payment_option",
+                    "updatedAt": firestore.SERVER_TIMESTAMP,
+                },
+                merge=True,
+            )
+        )
 
     return jsonify({"ok": True, "userId": user_id}), 200
 
@@ -391,7 +458,8 @@ def get_bootstrap() -> tuple[Any, int]:
     today_doc = user_ref.collection("progress").document(_today_yyyy_mm_dd()).get()
     subscription_doc = user_ref.collection("payments").document("subscription").get()
     profile_data = profile_doc.to_dict() if profile_doc.exists else {}
-    profile_complete, missing_profile_fields = _profile_completion(profile_data)
+    subscription_data = subscription_doc.to_dict() if subscription_doc.exists else {}
+    profile_complete, missing_profile_fields = _profile_completion(profile_data, subscription_data)
 
     response = {
         "userId": user_id,
@@ -406,7 +474,7 @@ def get_bootstrap() -> tuple[Any, int]:
         "progress": {
             "today": _json_safe(today_doc.to_dict() if today_doc.exists else {}),
         },
-        "subscription": _json_safe(subscription_doc.to_dict() if subscription_doc.exists else {}),
+        "subscription": _json_safe(subscription_data),
     }
     return jsonify(response), 200
 
@@ -449,6 +517,7 @@ def upsert_subscription_snapshot() -> tuple[Any, int]:
         "entitlementIds",
         "isActive",
         "productId",
+        "paymentOption",
         "store",
         "periodType",
         "expirationAt",
@@ -468,6 +537,14 @@ def upsert_subscription_snapshot() -> tuple[Any, int]:
         parsed = _parse_iso_datetime(snapshot["gracePeriodExpiresAt"])
         if parsed is not None:
             snapshot["gracePeriodExpiresAt"] = parsed
+
+    normalized_payment_option = _coerce_payment_option(snapshot.get("paymentOption"))
+    if normalized_payment_option is None:
+        normalized_payment_option = _coerce_payment_option_from_product_id(snapshot.get("productId"))
+    if normalized_payment_option:
+        snapshot["paymentOption"] = normalized_payment_option
+    else:
+        snapshot.pop("paymentOption", None)
 
     db = _get_db()
     (
@@ -517,6 +594,11 @@ def revenuecat_webhook() -> tuple[Any, int]:
     product_id = str(event.get("product_id", "")).strip()
     store = str(event.get("store", "")).strip()
     period_type = str(event.get("period_type", "")).strip()
+    payment_option = (
+        _coerce_payment_option(event.get("payment_option"))
+        or _coerce_payment_option(event.get("product_id"))
+        or _coerce_payment_option_from_product_id(product_id)
+    )
 
     expiration_at = _parse_event_datetime(event, "expiration_at_ms", "expiration_at")
     grace_period_expires_at = _parse_event_datetime(
@@ -580,6 +662,7 @@ def revenuecat_webhook() -> tuple[Any, int]:
         "entitlementIds": entitlement_ids,
         "isActive": is_active,
         "productId": product_id,
+        "paymentOption": payment_option,
         "store": store,
         "periodType": period_type,
         "expirationAt": expiration_at,

@@ -10,3 +10,5 @@ Unstoppable/Config/Secrets.local.xcconfig
 # Xcode user-specific workspace state
 *.xcuserstate
 xcuserdata/
+
+*.log

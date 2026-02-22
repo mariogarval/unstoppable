@@ -18,6 +18,17 @@ struct PaywallView: View {
         return revenueCat.packages.first(where: { $0.id == selectedPackageID })
     }
 
+    private var fallbackPackage: PaywallPackage? {
+        if let selectedDynamicPackage {
+            return selectedDynamicPackage
+        }
+        if let defaultID = revenueCat.defaultPackageID(),
+           let package = revenueCat.packages.first(where: { $0.id == defaultID }) {
+            return package
+        }
+        return revenueCat.packages.first
+    }
+
     private var ctaTitle: String {
         if isPurchasing {
             return "Processing..."
@@ -27,6 +38,14 @@ struct PaywallView: View {
             return "Continue - \(selectedDynamicPackage.price)"
         }
 
+        if revenueCat.isLoadingOfferings {
+            return "Loading plans..."
+        }
+
+        if revenueCat.packages.isEmpty {
+            return "Retry loading plans"
+        }
+
         return selectedPlan == .annual ? "Start Now. 7 Days Free." : "Subscribe. No Excuses."
     }
 
@@ -34,6 +53,11 @@ struct PaywallView: View {
         if let selectedDynamicPackage {
             return selectedDynamicPackage.isRecommended ? "sparkles" : "checkmark.seal.fill"
         }
+
+        if revenueCat.packages.isEmpty {
+            return "arrow.clockwise"
+        }
+
         return selectedPlan == .annual ? "sparkles" : "checkmark.seal.fill"
     }
 
@@ -138,6 +162,15 @@ struct PaywallView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
 
+                if revenueCat.packages.isEmpty {
+                    Text(revenueCat.lastErrorMessage ?? "Subscriptions are temporarily unavailable. Tap retry while we refresh plans from App Store Connect.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+                }
+
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Every feature. Zero restrictions.", systemImage: "checkmark.circle.fill")
                         .font(.footnote)
@@ -227,9 +260,7 @@ struct PaywallView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 DismissButton {
-                    Task {
-                        await completePaywallSelection("dismiss")
-                    }
+                    dismissPaywallToHome()
                 }
             }
         }
@@ -253,11 +284,22 @@ struct PaywallView: View {
 
     @MainActor
     private func handleContinueTapped() async {
-        if let selectedDynamicPackage {
-            await purchase(selectedDynamicPackage)
+        if let package = fallbackPackage {
+            selectedPackageID = package.id
+            await purchase(package)
             return
         }
-        await completePaywallSelection(selectedPlan.rawValue)
+
+        purchaseErrorMessage = nil
+        await revenueCat.refreshPaywall()
+
+        if let package = fallbackPackage {
+            selectedPackageID = package.id
+            await purchase(package)
+            return
+        }
+
+        purchaseErrorMessage = revenueCat.lastErrorMessage ?? "Subscription plans are still loading. Please retry in a moment."
     }
 
     @MainActor
@@ -327,11 +369,17 @@ struct PaywallView: View {
 #endif
         }
     }
+
+    @MainActor
+    private func dismissPaywallToHome() {
+        purchaseErrorMessage = nil
+        navigateHome = true
+    }
 }
 
 // MARK: - Dismiss button
 
-private struct DismissButton: View {
+struct DismissButton: View {
     let onTap: () -> Void
 
     var body: some View {
@@ -440,7 +488,7 @@ private struct TimelineRow: View {
 
 // MARK: - Plan card
 
-private struct PlanCard: View {
+struct PlanCard: View {
     let title: String
     let price: String
     let detail: String

@@ -42,6 +42,7 @@ final class RevenueCatManager: NSObject, ObservableObject {
     private let entitlementID = "premium"
     private let apiKeyInfoKey = "REVENUECAT_IOS_API_KEY"
     private let backendSyncEnabledInfoKey = "REVENUECAT_ENABLE_BACKEND_SYNC"
+
     private var packageByID: [String: Package] = [:]
     private lazy var isBackendSyncEnabled = configuredBackendSyncEnabled()
 
@@ -100,10 +101,10 @@ final class RevenueCatManager: NSObject, ObservableObject {
     }
 
     func logIn(appUserID: String) async {
-        guard ensureConfigured() else { return }
         let trimmedID = appUserID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedID.isEmpty else { return }
 
+        guard ensureConfigured() else { return }
         do {
             let (customerInfo, _) = try await Purchases.shared.logIn(trimmedID)
             apply(customerInfo: customerInfo)
@@ -139,7 +140,26 @@ final class RevenueCatManager: NSObject, ObservableObject {
 
         do {
             let offerings = try await Purchases.shared.offerings()
-            let availablePackages = offerings.current?.availablePackages ?? []
+            guard let currentOffering = offerings.current else {
+                packages = []
+                packageByID = [:]
+                lastErrorMessage = "No current RevenueCat offering is configured. Set one as Current in the RevenueCat dashboard."
+#if DEBUG
+                print("RevenueCat offerings loaded but current offering is nil. Offerings: \(offerings.all.keys.sorted())")
+#endif
+                return
+            }
+
+            let availablePackages = currentOffering.availablePackages
+            if availablePackages.isEmpty {
+                packages = []
+                packageByID = [:]
+                lastErrorMessage = "RevenueCat offering has no packages. Attach monthly/yearly products to the Current offering."
+#if DEBUG
+                print("RevenueCat current offering has no packages. Offering id: \(currentOffering.identifier)")
+#endif
+                return
+            }
 
             packageByID = Dictionary(uniqueKeysWithValues: availablePackages.map { ($0.identifier, $0) })
             packages = availablePackages.map(makePaywallPackage(from:))
@@ -286,11 +306,14 @@ final class RevenueCatManager: NSObject, ObservableObject {
     private func syncSubscriptionSnapshot(customerInfo: CustomerInfo) async {
         let activeEntitlement = customerInfo.entitlements.active[entitlementID]
         let entitlementIDs = Array(customerInfo.entitlements.active.keys).sorted()
+        let productID = activeEntitlement?.productIdentifier ?? customerInfo.activeSubscriptions.first
+        let inferredPaymentOption = paymentOption(forProductID: productID)
         let request = SubscriptionSnapshotUpsertRequest(
             entitlementId: activeEntitlement == nil ? nil : entitlementID,
             entitlementIds: entitlementIDs,
             isActive: hasActiveEntitlement(customerInfo),
-            productId: activeEntitlement?.productIdentifier ?? customerInfo.activeSubscriptions.first,
+            productId: productID,
+            paymentOption: inferredPaymentOption,
             store: nil,
             periodType: activeEntitlement.map { "\($0.periodType)" },
             expirationAt: activeEntitlement?.expirationDate,
@@ -308,6 +331,31 @@ final class RevenueCatManager: NSObject, ObservableObject {
             print("RevenueCat subscription snapshot sync failed: \(error.localizedDescription)")
 #endif
         }
+    }
+
+    private func paymentOption(forProductID productID: String?) -> String? {
+        guard let rawProductID = productID?.trimmingCharacters(in: .whitespacesAndNewlines), !rawProductID.isEmpty else {
+            return nil
+        }
+
+        if let package = packageByID.values.first(where: { $0.storeProduct.productIdentifier == rawProductID }) {
+            return paymentOption(for: package.packageType)
+        }
+
+        let normalized = rawProductID.lowercased()
+        if normalized.contains("annual") || normalized.contains("yearly") || normalized.contains("year") {
+            return "annual"
+        }
+        if normalized.contains("monthly") || normalized.contains("month") {
+            return "monthly"
+        }
+        if normalized.contains("weekly") || normalized.contains("week") {
+            return "weekly"
+        }
+        if normalized.contains("lifetime") || normalized.contains("life") {
+            return "lifetime"
+        }
+        return nil
     }
 }
 
