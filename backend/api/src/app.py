@@ -460,6 +460,46 @@ def upsert_daily_progress() -> tuple[Any, int]:
     return jsonify({"ok": True, "userId": user_id, "date": date_value}), 200
 
 
+@app.post("/v1/stats/streak/snapshot")
+def upsert_streak_snapshot() -> tuple[Any, int]:
+    user_id, err = _user_id_from_request()
+    if err:
+        return err
+
+    payload = _json_body()
+    current_streak = payload.get("currentStreak")
+    longest_streak = payload.get("longestStreak")
+    last_qualified_date = payload.get("lastQualifiedDate", "")
+
+    if not isinstance(current_streak, int) or current_streak < 0:
+        return jsonify({"error": "currentStreak must be a non-negative integer."}), 400
+    if not isinstance(longest_streak, int) or longest_streak < 0:
+        return jsonify({"error": "longestStreak must be a non-negative integer."}), 400
+    if not isinstance(last_qualified_date, str):
+        return jsonify({"error": "lastQualifiedDate must be a string."}), 400
+
+    normalized_last_qualified_date = last_qualified_date.strip()
+    if normalized_last_qualified_date:
+        try:
+            dt.date.fromisoformat(normalized_last_qualified_date)
+        except ValueError:
+            return jsonify({"error": "lastQualifiedDate must be yyyy-mm-dd or empty."}), 400
+
+    streak_data = {
+        "currentStreak": current_streak,
+        "longestStreak": longest_streak,
+        "lastQualifiedDate": normalized_last_qualified_date,
+        "source": "app_snapshot",
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }
+
+    db = _get_db()
+    streak_ref = db.collection("users").document(user_id).collection("stats").document("streak")
+    streak_ref.set(streak_data, merge=True)
+
+    return jsonify({"ok": True, "userId": user_id}), 200
+
+
 @app.get("/v1/bootstrap")
 def get_bootstrap() -> tuple[Any, int]:
     user_id, err = _user_id_from_request()

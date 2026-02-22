@@ -31,6 +31,7 @@ final class StreakManager {
     private static let currentKey = "streak.current"
     private static let longestKey = "streak.longest"
     private static let qualifiedKey = "streak.lastQualified"
+    private var didHydrateFromBootstrap = false
 
     private init() {
         load()
@@ -178,6 +179,28 @@ final class StreakManager {
         }
     }
 
+    func hydrateFromBootstrapIfNeeded(streak: [String: JSONValue]) {
+        guard !didHydrateFromBootstrap else { return }
+        didHydrateFromBootstrap = true
+
+        // Preserve actively-used local state; this path is for fresh install/new device restores.
+        guard dailyRecords.isEmpty, currentStreak == 0, longestStreak == 0, lastQualifiedDate.isEmpty else {
+            return
+        }
+
+        let remoteCurrent = Self.intValue(streak["currentStreak"]) ?? 0
+        let remoteLongest = Self.intValue(streak["longestStreak"]) ?? 0
+        let remoteLastQualifiedDate = Self.stringValue(streak["lastQualifiedDate"]) ?? ""
+        guard remoteCurrent > 0 || remoteLongest > 0 || !remoteLastQualifiedDate.isEmpty else {
+            return
+        }
+
+        currentStreak = max(0, remoteCurrent)
+        longestStreak = max(currentStreak, remoteLongest)
+        lastQualifiedDate = remoteLastQualifiedDate
+        save()
+    }
+
     private func checkMilestones() {
         switch currentStreak {
         case 7:
@@ -200,6 +223,7 @@ final class StreakManager {
         defaults.set(currentStreak, forKey: Self.currentKey)
         defaults.set(longestStreak, forKey: Self.longestKey)
         defaults.set(lastQualifiedDate, forKey: Self.qualifiedKey)
+        syncStreakSnapshot()
     }
 
     private func load() {
@@ -224,5 +248,47 @@ final class StreakManager {
 
     private static func yesterday() -> Date {
         Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+    }
+
+    private func syncStreakSnapshot() {
+        let request = StreakSnapshotUpsertRequest(
+            currentStreak: currentStreak,
+            longestStreak: longestStreak,
+            lastQualifiedDate: lastQualifiedDate
+        )
+
+        Task {
+            do {
+                _ = try await syncService.syncStreakSnapshot(request)
+            } catch {
+#if DEBUG
+                print("syncStreakSnapshot failed: \(error.localizedDescription)")
+#endif
+            }
+        }
+    }
+
+    private static func intValue(_ value: JSONValue?) -> Int? {
+        guard let value else { return nil }
+        switch value {
+        case .int(let intValue):
+            return intValue
+        case .double(let doubleValue):
+            return Int(doubleValue)
+        case .string(let stringValue):
+            return Int(stringValue)
+        default:
+            return nil
+        }
+    }
+
+    private static func stringValue(_ value: JSONValue?) -> String? {
+        guard let value else { return nil }
+        switch value {
+        case .string(let stringValue):
+            return stringValue
+        default:
+            return nil
+        }
     }
 }

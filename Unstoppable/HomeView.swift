@@ -25,6 +25,7 @@ struct HomeView: View {
     @State private var showMilestone = false
 
     private let streakManager = StreakManager.shared
+    private let syncService = UserDataSyncService.shared
 
     private var preferredScheme: ColorScheme? {
         switch settings.theme {
@@ -68,6 +69,9 @@ struct HomeView: View {
                 showStreakBroken = true
             }
         }
+        .task {
+            await loadSettingsFromBootstrap()
+        }
         .alert("Streak Lost", isPresented: $showStreakBroken) {
             Button("Got it") { streakManager.streakBrokenMessage = nil }
         } message: {
@@ -102,6 +106,55 @@ struct HomeView: View {
         dismiss()
 #endif
     }
+
+    @MainActor
+    private func loadSettingsFromBootstrap() async {
+        do {
+            let bootstrap = try await syncService.fetchBootstrap()
+            if let notificationsEnabled = profileBool("notificationsEnabled", from: bootstrap.profile) {
+                settings.notificationsEnabled = notificationsEnabled
+            }
+            if let routineTimeString = routineString("routineTime", from: bootstrap.routine),
+               let parsedTime = Self.parseRoutineTime(routineTimeString) {
+                settings.routineTime = parsedTime
+            }
+        } catch {
+#if DEBUG
+            print("loadSettingsFromBootstrap failed: \(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private func profileBool(_ key: String, from profile: [String: JSONValue]) -> Bool? {
+        guard let value = profile[key] else { return nil }
+        if case .bool(let boolValue) = value {
+            return boolValue
+        }
+        return nil
+    }
+
+    private func routineString(_ key: String, from routine: [String: JSONValue]) -> String? {
+        guard let value = routine[key] else { return nil }
+        if case .string(let stringValue) = value {
+            return stringValue
+        }
+        return nil
+    }
+
+    private static func parseRoutineTime(_ value: String) -> Date? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        guard let parsed = routineTimeFormatter.date(from: trimmed) else { return nil }
+        return parsed
+    }
+
+    private static let routineTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
 }
 
 // MARK: - Home Tab
@@ -119,15 +172,13 @@ private struct HomeTab: View {
     @State private var showingEditTime = false
     @State private var showingTemplates = false
     @State private var showingTimer = false
-    @State private var routineTime: Date = Date()
-
     let streakManager: StreakManager
-    let settings: AppSettings
+    @Bindable var settings: AppSettings
     let onTasksCountChange: (Int) -> Void
     private let syncService = UserDataSyncService.shared
 
     private var timeString: String {
-        routineTime.formatted(date: .omitted, time: .shortened)
+        settings.routineTime.formatted(date: .omitted, time: .shortened)
     }
 
     private var completedCount: Int {
@@ -151,7 +202,7 @@ private struct HomeTab: View {
 
     private func syncRoutineSnapshot() {
         let request = RoutineUpsertRequest(
-            routineTime: Self.routineTimeFormatter.string(from: routineTime),
+            routineTime: Self.routineTimeFormatter.string(from: settings.routineTime),
             tasks: tasks.map {
                 RoutineTaskPayload(
                     id: $0.id.uuidString,
@@ -317,9 +368,8 @@ private struct HomeTab: View {
             }
         }
         .sheet(isPresented: $showingEditTime) {
-            EditTimeSheet(time: $routineTime)
+            EditTimeSheet(time: $settings.routineTime)
                 .onDisappear {
-                    settings.routineTime = routineTime
                     syncRoutineSnapshot()
                 }
         }
@@ -346,13 +396,14 @@ private struct HomeTab: View {
                 syncRoutineSnapshot()
             }
         }
+        .onChange(of: settings.routineTime) { _, _ in
+            syncRoutineSnapshot()
+        }
         .onAppear {
-            routineTime = settings.routineTime
             for i in tasks.indices {
                 tasks[i].isCompleted = streakManager.isCompleted(taskID: tasks[i].id)
             }
             onTasksCountChange(tasks.count)
-            syncRoutineSnapshot()
         }
     }
 }
@@ -1072,6 +1123,7 @@ private struct SettingsTab: View {
     @State private var isSigningOut = false
     @State private var signOutErrorMessage: String?
     @State private var showPaywallTestSheet = false
+    private let syncService = UserDataSyncService.shared
 
     private var isPaywallTestButtonEnabled: Bool {
         Self.infoBool(
@@ -1144,6 +1196,11 @@ private struct SettingsTab: View {
                     PaywallView()
                 }
             }
+            .onChange(of: settings.notificationsEnabled) { _, enabled in
+                Task {
+                    await syncNotifications(enabled: enabled)
+                }
+            }
         }
     }
 
@@ -1183,6 +1240,18 @@ private struct SettingsTab: View {
             }
         }
         return defaultValue
+    }
+
+    private func syncNotifications(enabled: Bool) async {
+        do {
+            _ = try await syncService.syncUserProfile(
+                UserProfileUpsertRequest(notificationsEnabled: enabled)
+            )
+        } catch {
+#if DEBUG
+            print("syncUserProfile(notificationsEnabled settings) failed: \(error.localizedDescription)")
+#endif
+        }
     }
 }
 

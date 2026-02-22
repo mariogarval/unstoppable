@@ -20,6 +20,7 @@ struct WelcomeView: View {
 
     private let syncService = UserDataSyncService.shared
     private let authSession = AuthSessionManager.shared
+    private let streakManager = StreakManager.shared
 
     var body: some View {
         NavigationStack {
@@ -228,6 +229,7 @@ struct WelcomeView: View {
         didBootstrap = true
         do {
             let bootstrap = try await syncService.fetchBootstrap()
+            streakManager.hydrateFromBootstrapIfNeeded(streak: bootstrap.streak)
             cachedBootstrap = bootstrap
             return bootstrap
         } catch {

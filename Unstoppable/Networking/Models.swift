@@ -57,6 +57,12 @@ struct DailyProgressUpsertRequest: Codable, Sendable {
     let completedTaskIds: [String]
 }
 
+struct StreakSnapshotUpsertRequest: Codable, Sendable {
+    let currentStreak: Int
+    let longestStreak: Int
+    let lastQualifiedDate: String
+}
+
 struct SubscriptionSnapshotUpsertRequest: Codable, Sendable {
     let entitlementId: String?
     let entitlementIds: [String]

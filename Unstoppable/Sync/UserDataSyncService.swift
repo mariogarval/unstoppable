@@ -28,6 +28,11 @@ final class UserDataSyncService {
         try await apiClient.post("/v1/progress/daily", body: request, as: APIAckResponse.self)
     }
 
+    @discardableResult
+    func syncStreakSnapshot(_ request: StreakSnapshotUpsertRequest) async throws -> APIAckResponse {
+        try await apiClient.post("/v1/stats/streak/snapshot", body: request, as: APIAckResponse.self)
+    }
+
     func fetchBootstrap() async throws -> BootstrapResponse {
         try await apiClient.get("/v1/bootstrap", as: BootstrapResponse.self)
     }
