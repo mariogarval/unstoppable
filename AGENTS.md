@@ -26,6 +26,7 @@ This file defines how coding agents should operate in this repository.
 - Prefer small, targeted changes and validate with real build/launch checks.
 - Keep all implementation and troubleshooting steps documented.
 - Do not remove or rewrite prior user changes unless explicitly requested.
+- Do not stop at `xcodebuild` verification alone. After building, install and launch the latest app binary in Simulator.
 
 ## Planning and Clarifications
 
@@ -52,6 +53,10 @@ Rules:
 
 Preferred simulator:
 - `iPhone 17 Pro`
+
+Execution requirement:
+- Build validation must be followed by simulator install/launch in the same workflow (no build-only handoff).
+- Prefer `./scripts/run_ios_sim.sh "iPhone 17 Pro"` for this because it handles build, install, and launch.
 
 Preferred launch path:
 

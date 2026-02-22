@@ -1,9 +1,32 @@
 # Agent Session Index
 
-**Last Updated**: 2026-02-21
+**Last Updated**: 2026-02-22
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 8 markdown documents
+**Files**: 9 markdown documents
+
+---
+
+## February 22, 2026 - paymentOption Routing Split + Simulator Launch Guardrails
+
+### PAYMENTOPTION_SINGLE_SOURCE_ROUTING_AND_SIM_LAUNCH_GUARDRAILS_20260222.md ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-22 | **Status**: Implementation Complete
+**Branch**: `codex/payments-revenuecat-plan`
+
+**This document captures subscription-only `paymentOption` ownership hardening, profile-vs-paywall route separation, paywall dismiss no-write behavior, and simulator latest-binary launch guardrails.**
+
+**Problem Solved**: Removed profile/payment coupling side effects, fixed routing for users with complete profile but missing payment selection, and eliminated stale-binary validation gaps in simulator runs.
+
+**Key Results**:
+- Updated backend/profile/payment contract so `paymentOption` remains canonical in `users/{uid}/payments/subscription` and paywall-only updates no longer bump profile timestamps.
+- Updated app routing to send profile-incomplete users through profile flow, and profile-complete + payment-missing users directly to `PaywallView`.
+- Changed paywall top-right dismiss (`x`) to route to `HomeView` without writing `paymentOption`.
+- Hardened `scripts/run_ios_sim.sh` to install and launch the newest built app artifact across repo `.build` and Xcode `DerivedData`.
+- Clarified `AGENTS.md` to require build plus simulator install/launch in a single validation flow.
+
+**Next Steps**: Keep using `./scripts/run_ios_sim.sh "iPhone 17 Pro"` for build verification and optionally add end-to-end UI assertions for profile/paywall routing states.
+
+**Related**: `agent_logs/PAYMENTS_FAKE_SUBSCRIPTION_AND_CANONICAL_PAYMENT_OPTION_20260221.md` (prior canonicalization stage)
 
 ---
 
@@ -181,6 +204,7 @@
 
 | Topic | Location |
 |-------|----------|
+| paymentOption routing split + simulator latest-binary launch guardrails | `agent_logs/PAYMENTOPTION_SINGLE_SOURCE_ROUTING_AND_SIM_LAUNCH_GUARDRAILS_20260222.md` |
 | Fake subscription mode + canonical paymentOption ownership | `agent_logs/PAYMENTS_FAKE_SUBSCRIPTION_AND_CANONICAL_PAYMENT_OPTION_20260221.md` |
 | RevenueCat offerings blocker + paywall retry hardening | `agent_logs/REVENUECAT_OFFERINGS_BLOCKER_AND_PAYWALL_RETRY_20260221.md` |
 | Auth/bootstrap/profile troubleshooting hardening | `agent_logs/AUTH_BOOTSTRAP_PROFILE_SYNC_HARDENING_20260221.md` |

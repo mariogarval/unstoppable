@@ -260,9 +260,7 @@ struct PaywallView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 DismissButton {
-                    Task {
-                        await completePaywallSelection("dismiss")
-                    }
+                    dismissPaywallToHome()
                 }
             }
         }
@@ -370,6 +368,12 @@ struct PaywallView: View {
             print("syncUserProfile(paymentOption) failed: \(error.localizedDescription)")
 #endif
         }
+    }
+
+    @MainActor
+    private func dismissPaywallToHome() {
+        purchaseErrorMessage = nil
+        navigateHome = true
     }
 }
 
