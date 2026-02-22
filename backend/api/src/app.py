@@ -105,6 +105,14 @@ def _normalize_email(value: Any) -> str | None:
     return normalized or None
 
 
+def _verified_email_from_decoded_token(decoded: Any) -> str | None:
+    if not isinstance(decoded, dict):
+        return None
+    if decoded.get("email_verified") is not True:
+        return None
+    return _normalize_email(decoded.get("email"))
+
+
 def _non_empty_string(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
@@ -292,6 +300,7 @@ def _user_id_from_request() -> tuple[str | None, tuple[dict[str, str], int] | No
             user_id = _resolve_canonical_user_id(decoded)
             if not user_id:
                 return None, ({"error": "Token missing uid claim."}, 401)
+            request.environ["unstoppable.decoded_token"] = decoded
             return user_id, None
         except Exception:
             return None, ({"error": "Invalid auth token."}, 401)
@@ -300,6 +309,7 @@ def _user_id_from_request() -> tuple[str | None, tuple[dict[str, str], int] | No
     if os.getenv("ALLOW_DEV_USER_HEADER", "0") == "1":
         dev_user = request.headers.get("X-User-Id", "").strip()
         if dev_user:
+            request.environ.pop("unstoppable.decoded_token", None)
             return dev_user, None
 
     return None, (
@@ -339,6 +349,12 @@ def upsert_user_profile() -> tuple[Any, int]:
     if "paymentOption" in profile_data:
         normalized_payment_option = _coerce_payment_option(profile_data["paymentOption"])
     profile_data.pop("paymentOption", None)
+
+    verified_email = _verified_email_from_decoded_token(
+        request.environ.get("unstoppable.decoded_token")
+    )
+    if verified_email:
+        profile_data["email"] = verified_email
 
     db = _get_db()
     if profile_data:
