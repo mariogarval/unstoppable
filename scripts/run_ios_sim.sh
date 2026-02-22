@@ -216,13 +216,41 @@ xcodebuild \
   -derivedDataPath "$DERIVED_DATA_PATH" \
   build
 
-APP_PATH="$DERIVED_DATA_PATH/Build/Products/${CONFIGURATION}-iphonesimulator/${SCHEME}.app"
-if [[ ! -d "$APP_PATH" ]]; then
-  APP_PATH="$(find "$DERIVED_DATA_PATH/Build/Products" -maxdepth 2 -type d -name '*.app' | head -n 1)"
-fi
+find_latest_built_app() {
+  local -a candidates=()
+  local preferred="$DERIVED_DATA_PATH/Build/Products/${CONFIGURATION}-iphonesimulator/${SCHEME}.app"
+  if [[ -d "$preferred" ]]; then
+    candidates+=("$preferred")
+  fi
+
+  while IFS= read -r app; do
+    [[ -d "$app" ]] && candidates+=("$app")
+  done < <(find "$DERIVED_DATA_PATH/Build/Products" -maxdepth 2 -type d -name '*.app' 2>/dev/null || true)
+
+  while IFS= read -r app; do
+    [[ -d "$app" ]] && candidates+=("$app")
+  done < <(find "$HOME/Library/Developer/Xcode/DerivedData" \
+    -path "*/Build/Products/${CONFIGURATION}-iphonesimulator/${SCHEME}.app" \
+    -type d 2>/dev/null || true)
+
+  if [[ "${#candidates[@]}" -eq 0 ]]; then
+    return 1
+  fi
+
+  printf '%s\n' "${candidates[@]}" \
+    | awk '!seen[$0]++' \
+    | while IFS= read -r app; do
+        printf '%s|%s\n' "$(stat -f '%m' "$app" 2>/dev/null || echo 0)" "$app"
+      done \
+    | sort -t'|' -nr -k1,1 \
+    | head -n 1 \
+    | cut -d'|' -f2-
+}
+
+APP_PATH="$(find_latest_built_app || true)"
 
 if [[ -z "${APP_PATH:-}" || ! -d "$APP_PATH" ]]; then
-  echo "Could not locate built app in: $DERIVED_DATA_PATH/Build/Products" >&2
+  echo "Could not locate built app for scheme '$SCHEME'." >&2
   exit 1
 fi
 
