@@ -71,7 +71,7 @@ final class AuthSessionManager {
     @discardableResult
     func restoreSessionIfPossible() async -> Bool {
         guard let currentUser = Auth.auth().currentUser else { return false }
-        await PaymentManagerRouter.logIn(appUserID: currentUser.uid)
+        await RevenueCatManager.shared.logIn(appUserID: currentUser.uid)
         await syncService.setAuthMode(makeBearerMode())
         return true
     }
@@ -120,7 +120,7 @@ final class AuthSessionManager {
         try Auth.auth().signOut()
         clearPendingAppleLinkState()
         currentAppleNonce = nil
-        await PaymentManagerRouter.logOut()
+        await RevenueCatManager.shared.logOut()
         await syncService.setAuthMode(APIEnvironment.defaultAuthMode)
     }
 
@@ -219,7 +219,7 @@ final class AuthSessionManager {
     }
 
     private func applyAuthenticatedSession(for user: User) async {
-        await PaymentManagerRouter.logIn(appUserID: user.uid)
+        await RevenueCatManager.shared.logIn(appUserID: user.uid)
         await syncService.setAuthMode(makeBearerMode())
     }
 

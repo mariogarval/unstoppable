@@ -7,7 +7,7 @@ struct UnstoppableApp: App {
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
         }
-        PaymentManagerRouter.configureIfNeeded()
+        RevenueCatManager.shared.configureIfNeeded()
     }
 
     var body: some Scene {
