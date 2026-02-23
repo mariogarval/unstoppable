@@ -100,13 +100,14 @@ final class RevenueCatManager: NSObject, ObservableObject {
         return hasActiveEntitlement(customerInfo)
     }
 
-    func logIn(appUserID: String) async {
+    func logIn(appUserID: String, email: String? = nil) async {
         let trimmedID = appUserID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedID.isEmpty else { return }
 
         guard ensureConfigured() else { return }
         do {
             let (customerInfo, _) = try await Purchases.shared.logIn(trimmedID)
+            syncEmailAttribute(email)
             apply(customerInfo: customerInfo)
         } catch {
 #if DEBUG
@@ -207,6 +208,16 @@ final class RevenueCatManager: NSObject, ObservableObject {
         return isConfigured
     }
 
+    private func syncEmailAttribute(_ rawEmail: String?) {
+        let normalized = rawEmail?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        guard let normalized, !normalized.isEmpty else {
+            return
+        }
+        Purchases.shared.attribution.setEmail(normalized)
+    }
+
     private func configuredAPIKey() -> String? {
         let value = (Bundle.main.object(forInfoDictionaryKey: apiKeyInfoKey) as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -238,7 +249,7 @@ final class RevenueCatManager: NSObject, ObservableObject {
     }
 
     private func makePaywallPackage(from package: Package) -> PaywallPackage {
-        let paymentOption = paymentOption(for: package.packageType)
+        let paymentOption = paymentOption(for: package)
         let title = title(for: package)
         let detail = detail(for: package)
 
@@ -250,6 +261,16 @@ final class RevenueCatManager: NSObject, ObservableObject {
             paymentOption: paymentOption,
             isRecommended: package.packageType == .annual
         )
+    }
+
+    private func paymentOption(for package: Package) -> String {
+        if let fromProductID = paymentOption(forIdentifier: package.storeProduct.productIdentifier) {
+            return fromProductID
+        }
+        if let fromPackageID = paymentOption(forIdentifier: package.identifier) {
+            return fromPackageID
+        }
+        return paymentOption(for: package.packageType)
     }
 
     private func paymentOption(for packageType: PackageType) -> String {
@@ -339,10 +360,18 @@ final class RevenueCatManager: NSObject, ObservableObject {
         }
 
         if let package = packageByID.values.first(where: { $0.storeProduct.productIdentifier == rawProductID }) {
-            return paymentOption(for: package.packageType)
+            return paymentOption(for: package)
         }
 
-        let normalized = rawProductID.lowercased()
+        return paymentOption(forIdentifier: rawProductID)
+    }
+
+    private func paymentOption(forIdentifier identifier: String?) -> String? {
+        guard let identifier = identifier?.trimmingCharacters(in: .whitespacesAndNewlines), !identifier.isEmpty else {
+            return nil
+        }
+
+        let normalized = identifier.lowercased()
         if normalized.contains("annual") || normalized.contains("yearly") || normalized.contains("year") {
             return "annual"
         }

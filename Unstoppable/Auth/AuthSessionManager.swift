@@ -71,7 +71,7 @@ final class AuthSessionManager {
     @discardableResult
     func restoreSessionIfPossible() async -> Bool {
         guard let currentUser = Auth.auth().currentUser else { return false }
-        await RevenueCatManager.shared.logIn(appUserID: currentUser.uid)
+        await RevenueCatManager.shared.logIn(appUserID: currentUser.uid, email: currentUser.email)
         await syncService.setAuthMode(makeBearerMode())
         return true
     }
@@ -219,7 +219,7 @@ final class AuthSessionManager {
     }
 
     private func applyAuthenticatedSession(for user: User) async {
-        await RevenueCatManager.shared.logIn(appUserID: user.uid)
+        await RevenueCatManager.shared.logIn(appUserID: user.uid, email: user.email)
         await syncService.setAuthMode(makeBearerMode())
     }
 

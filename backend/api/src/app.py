@@ -105,6 +105,14 @@ def _normalize_email(value: Any) -> str | None:
     return normalized or None
 
 
+def _verified_email_from_decoded_token(decoded: Any) -> str | None:
+    if not isinstance(decoded, dict):
+        return None
+    if decoded.get("email_verified") is not True:
+        return None
+    return _normalize_email(decoded.get("email"))
+
+
 def _non_empty_string(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
@@ -292,6 +300,7 @@ def _user_id_from_request() -> tuple[str | None, tuple[dict[str, str], int] | No
             user_id = _resolve_canonical_user_id(decoded)
             if not user_id:
                 return None, ({"error": "Token missing uid claim."}, 401)
+            request.environ["unstoppable.decoded_token"] = decoded
             return user_id, None
         except Exception:
             return None, ({"error": "Invalid auth token."}, 401)
@@ -300,6 +309,7 @@ def _user_id_from_request() -> tuple[str | None, tuple[dict[str, str], int] | No
     if os.getenv("ALLOW_DEV_USER_HEADER", "0") == "1":
         dev_user = request.headers.get("X-User-Id", "").strip()
         if dev_user:
+            request.environ.pop("unstoppable.decoded_token", None)
             return dev_user, None
 
     return None, (
@@ -339,6 +349,12 @@ def upsert_user_profile() -> tuple[Any, int]:
     if "paymentOption" in profile_data:
         normalized_payment_option = _coerce_payment_option(profile_data["paymentOption"])
     profile_data.pop("paymentOption", None)
+
+    verified_email = _verified_email_from_decoded_token(
+        request.environ.get("unstoppable.decoded_token")
+    )
+    if verified_email:
+        profile_data["email"] = verified_email
 
     db = _get_db()
     if profile_data:
@@ -444,6 +460,46 @@ def upsert_daily_progress() -> tuple[Any, int]:
     return jsonify({"ok": True, "userId": user_id, "date": date_value}), 200
 
 
+@app.post("/v1/stats/streak/snapshot")
+def upsert_streak_snapshot() -> tuple[Any, int]:
+    user_id, err = _user_id_from_request()
+    if err:
+        return err
+
+    payload = _json_body()
+    current_streak = payload.get("currentStreak")
+    longest_streak = payload.get("longestStreak")
+    last_qualified_date = payload.get("lastQualifiedDate", "")
+
+    if not isinstance(current_streak, int) or current_streak < 0:
+        return jsonify({"error": "currentStreak must be a non-negative integer."}), 400
+    if not isinstance(longest_streak, int) or longest_streak < 0:
+        return jsonify({"error": "longestStreak must be a non-negative integer."}), 400
+    if not isinstance(last_qualified_date, str):
+        return jsonify({"error": "lastQualifiedDate must be a string."}), 400
+
+    normalized_last_qualified_date = last_qualified_date.strip()
+    if normalized_last_qualified_date:
+        try:
+            dt.date.fromisoformat(normalized_last_qualified_date)
+        except ValueError:
+            return jsonify({"error": "lastQualifiedDate must be yyyy-mm-dd or empty."}), 400
+
+    streak_data = {
+        "currentStreak": current_streak,
+        "longestStreak": longest_streak,
+        "lastQualifiedDate": normalized_last_qualified_date,
+        "source": "app_snapshot",
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }
+
+    db = _get_db()
+    streak_ref = db.collection("users").document(user_id).collection("stats").document("streak")
+    streak_ref.set(streak_data, merge=True)
+
+    return jsonify({"ok": True, "userId": user_id}), 200
+
+
 @app.get("/v1/bootstrap")
 def get_bootstrap() -> tuple[Any, int]:
     user_id, err = _user_id_from_request()
@@ -538,9 +594,10 @@ def upsert_subscription_snapshot() -> tuple[Any, int]:
         if parsed is not None:
             snapshot["gracePeriodExpiresAt"] = parsed
 
-    normalized_payment_option = _coerce_payment_option(snapshot.get("paymentOption"))
+    # Prefer product-id-derived option so paymentOption stays aligned with RevenueCat SKU naming.
+    normalized_payment_option = _coerce_payment_option_from_product_id(snapshot.get("productId"))
     if normalized_payment_option is None:
-        normalized_payment_option = _coerce_payment_option_from_product_id(snapshot.get("productId"))
+        normalized_payment_option = _coerce_payment_option(snapshot.get("paymentOption"))
     if normalized_payment_option:
         snapshot["paymentOption"] = normalized_payment_option
     else:
@@ -595,9 +652,9 @@ def revenuecat_webhook() -> tuple[Any, int]:
     store = str(event.get("store", "")).strip()
     period_type = str(event.get("period_type", "")).strip()
     payment_option = (
-        _coerce_payment_option(event.get("payment_option"))
+        _coerce_payment_option_from_product_id(product_id)
+        or _coerce_payment_option(event.get("payment_option"))
         or _coerce_payment_option(event.get("product_id"))
-        or _coerce_payment_option_from_product_id(product_id)
     )
 
     expiration_at = _parse_event_datetime(event, "expiration_at_ms", "expiration_at")

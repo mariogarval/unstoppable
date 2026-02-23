@@ -3,7 +3,28 @@
 **Last Updated**: 2026-02-22
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 9 markdown documents
+**Files**: 10 markdown documents
+
+---
+
+## February 22, 2026 - RevenueCat Email Attribute Sync
+
+### REVENUECAT_EMAIL_SYNC_20260222.md ✅ COMPLETE
+**Date**: 2026-02-22 | **Status**: Complete
+**Branch**: `codex/profile-email-sync`
+
+**This document captures the iOS-side RevenueCat email attribute sync implementation using Firebase user email during RevenueCat login and session restore flows.**
+
+**Problem Solved**: Closed the gap where RevenueCat user identity was set by UID but email was not being synced for customer attribution/support visibility.
+
+**Key Results**:
+- Updated RevenueCat manager to accept optional email and call `Purchases.shared.attribution.setEmail(...)` after successful login.
+- Updated auth session restore and authenticated session setup to pass Firebase email into RevenueCat login.
+- Re-validated with `xcodebuild` and simulator launch on `iPhone 17 Pro`.
+
+**Next Steps**: Validate one sandbox login and confirm the email attribute appears in the RevenueCat customer profile.
+
+**Related**: `agent_logs/REVENUECAT_PAYMENTS_ROLLOUT_STATUS_20260217.md` (overall RevenueCat rollout context)
 
 ---
 
@@ -204,6 +225,7 @@
 
 | Topic | Location |
 |-------|----------|
+| RevenueCat email attribute sync from Firebase user email | `agent_logs/REVENUECAT_EMAIL_SYNC_20260222.md` |
 | paymentOption routing split + simulator latest-binary launch guardrails | `agent_logs/PAYMENTOPTION_SINGLE_SOURCE_ROUTING_AND_SIM_LAUNCH_GUARDRAILS_20260222.md` |
 | Fake subscription mode + canonical paymentOption ownership | `agent_logs/PAYMENTS_FAKE_SUBSCRIPTION_AND_CANONICAL_PAYMENT_OPTION_20260221.md` |
 | RevenueCat offerings blocker + paywall retry hardening | `agent_logs/REVENUECAT_OFFERINGS_BLOCKER_AND_PAYWALL_RETRY_20260221.md` |

@@ -3,7 +3,30 @@
 **Last Updated**: 2026-02-22
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 11 markdown documents
+**Files**: 12 markdown documents
+
+---
+
+## February 22, 2026 - Home Settings Bootstrap Sync
+
+### `HOME_SETTINGS_BOOTSTRAP_SYNC_20260222.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-02-22 | **Status**: Complete
+**Branch**: `codex/profile-email-sync`
+
+**Sourced Home settings from bootstrap and synchronized notifications/routine time behavior with backend APIs.**
+
+**Problem Solved**: Prevented drift between in-memory Home settings and persisted backend values, and removed launch-time routine snapshot overwrite risk.
+
+**Key Results**:
+- Added `HomeView` bootstrap loading for `profile.notificationsEnabled` and `routine.routineTime`.
+- Bound `HomeTab` routine-time display/edit/sync directly to `settings.routineTime`.
+- Synced Settings notifications toggle via `syncUserProfile(notificationsEnabled:)`.
+- Removed eager routine snapshot on `HomeTab.onAppear` that could overwrite stored backend routine time.
+- Revalidated with `xcodebuild` and `./scripts/run_ios_sim.sh "iPhone 17 Pro"`.
+
+**Next Steps**: Optionally move remaining user preferences (`theme`, `hapticsEnabled`) to backend or local persistence based on product scope.
+
+**Related**: `PROFILE_COMPLETION_ROUTING_20260221.md` (bootstrap data consumer pattern)
 
 ---
 
@@ -236,6 +259,7 @@
 
 | Topic | Location |
 |-------|----------|
+| Home settings bootstrap sync (routine time + notifications) | `HOME_SETTINGS_BOOTSTRAP_SYNC_20260222.md` |
 | Stable API endpoint revert | `API_BASE_URL_STABLE_ENDPOINT_20260221.md` |
 | Remove fake payment flow | `REMOVE_FAKE_PAYMENT_FLOW_20260222.md` |
 | Sign-in bootstrap URL fix | `SIGNIN_BOOTSTRAP_API_BASE_URL_20260221.md` |
