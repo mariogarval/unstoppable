@@ -223,6 +223,10 @@ final class AuthSessionManager {
         await syncService.setAuthMode(makeBearerMode())
     }
 
+    /// `fetchSignInMethods` is deprecated and unreliable when Email Enumeration Protection is enabled.
+    /// It may return an empty list even for existing accounts.
+    /// Handle this ambiguity carefully in your logic.
+    @available(*, deprecated, message: "fetchSignInMethods is unreliable with Email Enumeration Protection enabled and may return empty list even for existing accounts.")
     private func fetchSignInMethods(forEmail email: String) async throws -> [String] {
         try await withCheckedThrowingContinuation { continuation in
             Auth.auth().fetchSignInMethods(forEmail: email) { methods, error in
@@ -231,6 +235,7 @@ final class AuthSessionManager {
                     return
                 }
 
+                // If methods is empty, this could mean either no providers or enumeration protection is enabled
                 continuation.resume(returning: methods ?? [])
             }
         }
@@ -377,3 +382,4 @@ final class AuthSessionManager {
         return hashed.map { String(format: "%02x", $0) }.joined()
     }
 }
+

@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct PaywallView: View {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var selectedPlan: Plan = .annual
     @State private var selectedPackageID: String?
-    @State private var navigateHome = false
+    @State private var navigateRoutineCreation = false
+    @State private var showDismissAlert = false
     @State private var isPurchasing = false
     @State private var isRestoring = false
     @State private var isSavingSelection = false
@@ -78,6 +80,12 @@ struct PaywallView: View {
                     .multilineTextAlignment(.center)
                     .accessibilityAddTraits(.isHeader)
                     .padding(.top, 8)
+
+                Text("Join 5M+ users who transformed their mornings")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 4)
 
                 Text("Don\u{2019}t be most people. $2.29/month is less than one coffee.")
                     .font(.callout)
@@ -241,7 +249,7 @@ struct PaywallView: View {
                         await completePaywallSelection("skip")
                     }
                 } label: {
-                    Text("Stay limited. Your call.")
+                    Text("Continue with Free Version")
                         .font(.callout)
                         .foregroundStyle(.tint)
                         .frame(minHeight: 44)
@@ -277,8 +285,13 @@ struct PaywallView: View {
             }
             self.selectedPackageID = revenueCat.defaultPackageID()
         }
-        .navigationDestination(isPresented: $navigateHome) {
-            HomeView()
+        .navigationDestination(isPresented: $navigateRoutineCreation) {
+            RoutineCreationView()
+        }
+        .alert("Keep going", isPresented: $showDismissAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Choose a plan or continue for free to access the app.")
         }
     }
 
@@ -361,7 +374,8 @@ struct PaywallView: View {
             _ = try await syncService.syncUserProfile(
                 UserProfileUpsertRequest(paymentOption: option)
             )
-            navigateHome = true
+            hasCompletedOnboarding = true
+            navigateRoutineCreation = true
         } catch {
             purchaseErrorMessage = "Could not save your selection. Please try again."
 #if DEBUG
@@ -373,7 +387,7 @@ struct PaywallView: View {
     @MainActor
     private func dismissPaywallToHome() {
         purchaseErrorMessage = nil
-        navigateHome = true
+        showDismissAlert = true
     }
 }
 

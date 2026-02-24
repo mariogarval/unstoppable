@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2B0135E12F3D3F1C007ED162 /* OnboardingUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */; };
+		2BF67EBE2F4D0D63008E4042 /* RoutineCreationView 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BF67EBD2F4D0D63008E4042 /* RoutineCreationView 2.swift */; };
 		A71B2E012A0B1C0000F1A2B3 /* UnstoppableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */; };
 		A71B2E032A0B1C0000F1A2B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E022A0B1C0000F1A2B3 /* ContentView.swift */; };
 		A71B2E052A0B1C0100F1A2B3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A71B2E042A0B1C0100F1A2B3 /* Assets.xcassets */; };
@@ -41,6 +42,7 @@
 
 /* Begin PBXFileReference section */
 		2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingUI.swift; sourceTree = "<group>"; };
+		2BF67EBD2F4D0D63008E4042 /* RoutineCreationView 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RoutineCreationView 2.swift"; sourceTree = "<group>"; };
 		8D9E7C7F2F49630800D1C986 /* Unstoppable.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Unstoppable.entitlements; sourceTree = "<group>"; };
 		A71B2DFD2A0B1C0000F1A2B3 /* Unstoppable.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Unstoppable.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnstoppableApp.swift; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 				A71B2E2F2A0B1C1200F1A2B3 /* StreakManager.swift */,
 				A71B2E042A0B1C0100F1A2B3 /* Assets.xcassets */,
 				C0A200041111111111111111 /* GoogleService-Info.plist */,
+				2BF67EBD2F4D0D63008E4042 /* RoutineCreationView 2.swift */,
 			);
 			path = Unstoppable;
 			sourceTree = "<group>";
@@ -279,6 +282,7 @@
 				A71B2E162A0B1C0500F1A2B3 /* RoutinePreviewView.swift in Sources */,
 				A71B2E182A0B1C0600F1A2B3 /* TimerDemoView.swift in Sources */,
 				A71B2E1A2A0B1C0700F1A2B3 /* SocialProofView.swift in Sources */,
+				2BF67EBE2F4D0D63008E4042 /* RoutineCreationView 2.swift in Sources */,
 				A71B2E1C2A0B1C0800F1A2B3 /* GoalSelectionView.swift in Sources */,
 				A71B2E1E2A0B1C0900F1A2B3 /* AgeGroupView.swift in Sources */,
 				A71B2E202A0B1C0A00F1A2B3 /* GenderSelectionView.swift in Sources */,
@@ -425,7 +429,7 @@
 			buildSettings = {
 				API_BASE_URL = "https://unstoppable-api-1094359674860.us-central1.run.app";
 				API_DEV_USER_ID = "dev-user-001";
-					API_USE_DEV_AUTH = NO;
+				API_USE_DEV_AUTH = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Unstoppable/Unstoppable.entitlements;

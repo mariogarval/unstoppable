@@ -21,6 +21,10 @@ struct TermsSheetView: View {
                 .frame(width: 36, height: 5)
                 .padding(.top, 8)
 
+            ThemedProgressBar.light(step: 7, total: 7)
+                .padding(.top, 12)
+                .padding(.horizontal, 20)
+
             Text("Handle the paperwork")
                 .font(.title2.bold())
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -164,14 +168,13 @@ struct TermsSheetView: View {
                     termsMarketingAccepted: agreeMarketing
                 )
             )
-            didAccept = true
-            dismiss()
         } catch {
-            syncErrorMessage = "Could not save terms acceptance. Please try again."
 #if DEBUG
-            print("syncUserProfile(termsAccepted) failed: \(error.localizedDescription)")
+            print("syncUserProfile(termsAccepted) failed (non-blocking): \(error.localizedDescription)")
 #endif
         }
+        didAccept = true
+        dismiss()
     }
 }
 
@@ -181,7 +184,7 @@ private struct CheckboxIcon: View {
     var body: some View {
         Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
             .font(.title3)
-            .foregroundStyle(isChecked ? .blue : Color(.systemGray3))
+            .foregroundStyle(isChecked ? Color.blue : Color(.systemGray3))
     }
 }
 

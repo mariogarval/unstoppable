@@ -12,6 +12,10 @@ struct NicknameView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            ThemedProgressBar.light(step: 1, total: 7)
+                .padding(.top, 16)
+                .padding(.horizontal, 20)
+
             // Title
             VStack(alignment: .leading, spacing: 8) {
                 Text("What do they\ncall you?")
@@ -22,7 +26,7 @@ struct NicknameView: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
             }
-            .padding(.top, 40)
+            .padding(.top, 28)
             .opacity(appeared ? 1 : 0)
             .offset(y: appeared ? 0 : 8)
             .animation(.easeOut(duration: 0.4), value: appeared)
@@ -117,13 +121,12 @@ struct NicknameView: View {
                     termsAccepted: nil
                 )
             )
-            navigateNext = true
         } catch {
-            syncErrorMessage = "Could not save your profile. Please try again."
 #if DEBUG
-            print("syncUserProfile(nickname) failed: \(error.localizedDescription)")
+            print("syncUserProfile(nickname) failed (non-blocking): \(error.localizedDescription)")
 #endif
         }
+        navigateNext = true
     }
 }
 

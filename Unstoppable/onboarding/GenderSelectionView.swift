@@ -14,7 +14,7 @@ struct GenderSelectionView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 6, total: 6)
+            ThemedProgressBar.light(step: 3, total: 7)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 
@@ -91,7 +91,7 @@ struct GenderSelectionView: View {
             }
         }
         .navigationDestination(isPresented: $navigateNext) {
-            NotificationPermissionView()
+            GoalSelectionView()
         }
     }
 
@@ -111,13 +111,12 @@ struct GenderSelectionView: View {
                     termsAccepted: nil
                 )
             )
-            navigateNext = true
         } catch {
-            syncErrorMessage = "Could not save your gender. Please try again."
 #if DEBUG
-            print("syncUserProfile(gender) failed: \(error.localizedDescription)")
+            print("syncUserProfile(gender) failed (non-blocking): \(error.localizedDescription)")
 #endif
         }
+        navigateNext = true
     }
 }
 

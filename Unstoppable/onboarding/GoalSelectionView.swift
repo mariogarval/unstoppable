@@ -2,14 +2,15 @@ import SwiftUI
 
 struct GoalSelectionView: View {
     @State private var selected: Set<String> = []
+    @State private var navigateNext = false
 
     private let goals: [(title: String, emoji: String)] = [
-        ("Stop planning, start doing", "\u{1F3C3}"),
-        ("Stay on top of your schedule", "\u{1F4C5}"),
-        ("Master your deep focus", "\u{1F3AF}"),
-        ("Track every task you have", "\u{2705}"),
-        ("Take a moment for yourself", "\u{2615}"),
-        ("Own your daily energy", "\u{2728}"),
+        ("Join the 5AM Club", "\u{23F0}"),
+        ("Build atomic habits", "\u{1F504}"),
+        ("Master deep work", "\u{1F3AF}"),
+        ("Change my life", "\u{1F525}"),
+        ("Own my mornings", "\u{2600}\u{FE0F}"),
+        ("Discipline over motivation", "\u{1F4AA}"),
     ]
 
     private let columns = [
@@ -19,7 +20,7 @@ struct GoalSelectionView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 4, total: 6)
+            ThemedProgressBar.light(step: 4, total: 7)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 
@@ -57,16 +58,22 @@ struct GoalSelectionView: View {
             Spacer()
 
             VStack(spacing: 12) {
-                NavigationLink {
-                    ContentView()
+                Button {
+                    navigateNext = true
                 } label: {
-                    OnboardingPrimaryButton("Next", background: selected.isEmpty ? Color(.systemGray4) : .black, foreground: .white) { }
+                    Text("Next")
+                        .font(.body.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .padding(.vertical, 4)
+                        .foregroundStyle(.white)
+                        .background(selected.isEmpty ? Color(.systemGray4) : Color.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .accessibilityHint("Proceeds after selecting your goals.")
                 .disabled(selected.isEmpty)
+                .accessibilityHint("Proceeds after selecting your goals.")
 
                 Button {
-                    // Skip action
+                    navigateNext = true
                 } label: {
                     Text("Skip")
                         .font(.subheadline)
@@ -84,6 +91,9 @@ struct GoalSelectionView: View {
             ToolbarItem(placement: .navigationBarLeading) {
                 OnboardingBackButton(color: .primary)
             }
+        }
+        .navigationDestination(isPresented: $navigateNext) {
+            NotificationPermissionView()
         }
     }
 }

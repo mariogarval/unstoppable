@@ -11,8 +11,9 @@ struct WelcomeView: View {
     @State private var isAppleSigningIn = false
     @State private var isGoogleSigningIn = false
     @State private var authErrorMessage: String?
-    @State private var navigateNickname = false
+    @State private var navigateDemo = false
     @State private var navigatePaywall = false
+    @State private var navigateRoutineCreation = false
     @State private var navigateHome = false
     @State private var didBootstrap = false
     @State private var didHandleRestoreRouting = false
@@ -50,7 +51,7 @@ struct WelcomeView: View {
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
 
-                        Text("You know what to do. This app makes sure you actually do it.")
+                        Text("For the 5AM Club. For atomic habit builders.\nFor anyone done with excuses.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -121,7 +122,7 @@ struct WelcomeView: View {
 
                         // Continue without signup — prominent tint outline
                         NavigationLink {
-                            NicknameView()
+                            RoutinePreviewView()
                         } label: {
                             Text("Skip signup. Just start.")
                                 .font(.body.weight(.semibold))
@@ -208,11 +209,14 @@ struct WelcomeView: View {
                 .dynamicTypeSize(.medium ... .accessibility5)
                 .navigationTitle("")
                 .toolbar(.hidden, for: .navigationBar)
-                .navigationDestination(isPresented: $navigateNickname) {
-                    NicknameView()
+                .navigationDestination(isPresented: $navigateDemo) {
+                    RoutinePreviewView()
                 }
                 .navigationDestination(isPresented: $navigatePaywall) {
                     PaywallView()
+                }
+                .navigationDestination(isPresented: $navigateRoutineCreation) {
+                    RoutineCreationView()
                 }
                 .navigationDestination(isPresented: $navigateHome) {
                     HomeView()
@@ -289,11 +293,12 @@ struct WelcomeView: View {
     @MainActor
     private func routeAuthenticatedUser(using bootstrap: BootstrapResponse) {
         navigateHome = false
-        navigateNickname = false
+        navigateDemo = false
         navigatePaywall = false
+        navigateRoutineCreation = false
 
         if !isProfileFlowComplete(bootstrap) {
-            navigateNickname = true
+            navigateDemo = true
             return
         }
 
@@ -302,6 +307,14 @@ struct WelcomeView: View {
             return
         }
 
+        let hasCreatedRoutine = UserDefaults.standard.bool(forKey: "hasCreatedRoutine")
+        if !hasCreatedRoutine {
+            navigateRoutineCreation = true
+            return
+        }
+
+        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        UserDefaults.standard.set(true, forKey: "hasCreatedRoutine")
         navigateHome = true
     }
 

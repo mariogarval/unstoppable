@@ -7,17 +7,18 @@ struct AgeGroupView: View {
     private let syncService = UserDataSyncService.shared
 
     private let ageRanges = [
-        "20 ~ 24",
-        "25 ~ 29",
-        "30 ~ 34",
-        "35 ~ 39",
-        "40 ~ 44",
-        "45 and above",
+        "Under 15",
+        "15–19",
+        "20–24",
+        "25–29",
+        "30–34",
+        "35–39",
+        "40–44",
     ]
 
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 5, total: 6)
+            ThemedProgressBar.light(step: 2, total: 7)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 
@@ -112,13 +113,12 @@ struct AgeGroupView: View {
                     termsAccepted: nil
                 )
             )
-            navigateNext = true
         } catch {
-            syncErrorMessage = "Could not save your age group. Please try again."
 #if DEBUG
-            print("syncUserProfile(ageGroup) failed: \(error.localizedDescription)")
+            print("syncUserProfile(ageGroup) failed (non-blocking): \(error.localizedDescription)")
 #endif
         }
+        navigateNext = true
     }
 }
 

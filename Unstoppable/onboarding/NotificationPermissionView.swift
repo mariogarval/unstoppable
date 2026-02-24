@@ -11,7 +11,7 @@ struct NotificationPermissionView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 6, total: 6)
+            ThemedProgressBar.light(step: 5, total: 7)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 
@@ -142,13 +142,12 @@ struct NotificationPermissionView: View {
                     termsAccepted: nil
                 )
             )
-            navigateNext = true
         } catch {
-            syncErrorMessage = "Could not save notification preference. Please try again."
 #if DEBUG
-            print("syncUserProfile(notifications) failed: \(error.localizedDescription)")
+            print("syncUserProfile(notifications) failed (non-blocking): \(error.localizedDescription)")
 #endif
         }
+        navigateNext = true
     }
 }
 

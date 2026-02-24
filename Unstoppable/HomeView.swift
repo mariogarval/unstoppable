@@ -190,6 +190,18 @@ private struct HomeTab: View {
         return Double(completedCount) / Double(tasks.count)
     }
 
+    private func loadPendingTasksIfNeeded() {
+        guard let data = UserDefaults.standard.data(forKey: "pendingRoutineTasks"),
+              let pendingTasks = try? JSONDecoder().decode([PendingTask].self, from: data),
+              !pendingTasks.isEmpty else { return }
+        withAnimation(.easeInOut(duration: 0.3)) {
+            tasks = pendingTasks.map { RoutineTask(title: $0.title, icon: $0.icon, duration: $0.duration) }
+            onTasksCountChange(tasks.count)
+        }
+        UserDefaults.standard.removeObject(forKey: "pendingRoutineTasks")
+        syncRoutineSnapshot()
+    }
+
     private func applyTemplate(_ templateTasks: [TemplateTask]) {
         withAnimation(.easeInOut(duration: 0.3)) {
             tasks = templateTasks.map {
@@ -400,6 +412,7 @@ private struct HomeTab: View {
             syncRoutineSnapshot()
         }
         .onAppear {
+            loadPendingTasksIfNeeded()
             for i in tasks.indices {
                 tasks[i].isCompleted = streakManager.isCompleted(taskID: tasks[i].id)
             }
@@ -521,6 +534,14 @@ private struct RoutineHeader: View {
             .contentShape(Rectangle())
         }
     }
+}
+
+// MARK: - Pending Task (written by RoutineCreationView, read by HomeTab)
+
+struct PendingTask: Codable {
+    let title: String
+    let icon: String
+    let duration: Int
 }
 
 // MARK: - Task Model
@@ -1212,6 +1233,8 @@ private struct SettingsTab: View {
 
         do {
             try await AuthSessionManager.shared.signOut()
+            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+            UserDefaults.standard.set(false, forKey: "hasCreatedRoutine")
             onSignedOut()
         } catch {
             signOutErrorMessage = error.localizedDescription

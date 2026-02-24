@@ -15,6 +15,11 @@ struct SocialProofView: View {
                     .foregroundStyle(.orange)
                 Text("stopped making excuses")
                     .font(.title.bold())
+                Text("5AM Club \u{2022} Atomic Habits \u{2022} Deep Work \u{2022} Life Change")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 4)
             }
             .padding(.bottom, 32)
 
@@ -28,7 +33,7 @@ struct SocialProofView: View {
                     }
                 }
 
-                Text("\u{201C}This is probably the best routine planner app I\u{2019}ve seen! Really helps me stay motivated and achieve healthy habits every single day. Thank you Routinery! \u{1F49C}\u{201D}")
+                Text("\u{201C}This is probably the best routine planner app I\u{2019}ve seen! Really helps me stay motivated and achieve healthy habits every single day. Thank you Unstoppable Me! \u{1F49C}\u{201D}")
                     .font(.subheadline)
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
@@ -48,32 +53,34 @@ struct SocialProofView: View {
 
             // Backed by section
             VStack(spacing: 14) {
-                Text("Backed by")
+                Text("Backed by research")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                Text("Studies show structured morning routines increase productivity by 40%")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+
                 HStack(spacing: 32) {
-                    Text("Forbes")
-                        .font(.system(size: 20, weight: .bold, design: .serif))
+                    Text("Harvard Business Review")
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.primary.opacity(0.5))
 
                     RoundedRectangle(cornerRadius: 1)
                         .fill(Color(.systemGray4))
                         .frame(width: 1, height: 24)
 
-                    HStack(spacing: 4) {
-                        Text("Google")
-                            .font(.headline)
-                        Text("for Startups")
-                            .font(.subheadline)
-                    }
-                    .foregroundStyle(.primary.opacity(0.5))
+                    Text("MIT Sloan")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.primary.opacity(0.5))
                 }
             }
             .padding(.bottom, 24)
 
             NavigationLink {
-                GoalSelectionView()
+                NicknameView()
             } label: {
                 Text("Next")
                     .font(.body.weight(.semibold))
