@@ -120,8 +120,10 @@ struct WelcomeView: View {
                         .animation(.easeOut(duration: 0.45).delay(0.06), value: googleAppeared)
 
                         // Continue without signup — prominent tint outline
-                        NavigationLink {
-                            NicknameView()
+                        Button {
+                            Task {
+                                await continueAsGuest()
+                            }
                         } label: {
                             Text("Skip signup. Just start.")
                                 .font(.body.weight(.semibold))
@@ -136,6 +138,7 @@ struct WelcomeView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.9)
                         }
+                        .buttonStyle(.plain)
                         .accessibilityLabel("Continue without signup")
                         .opacity(guestAppeared ? 1 : 0)
                         .offset(y: guestAppeared ? 0 : 8)
@@ -351,6 +354,13 @@ struct WelcomeView: View {
         guard let value = subscription[key] else { return false }
         guard case .string(let str) = value else { return false }
         return !str.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    @MainActor
+    private func continueAsGuest() async {
+        authErrorMessage = nil
+        await syncService.enterGuestMode()
+        navigateNickname = true
     }
 }
 

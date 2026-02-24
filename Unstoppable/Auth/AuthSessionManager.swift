@@ -73,6 +73,7 @@ final class AuthSessionManager {
         guard let currentUser = Auth.auth().currentUser else { return false }
         await RevenueCatManager.shared.logIn(appUserID: currentUser.uid, email: currentUser.email)
         await syncService.setAuthMode(makeBearerMode())
+        await syncService.flushPendingGuestDataIfNeeded()
         return true
     }
 
@@ -221,6 +222,7 @@ final class AuthSessionManager {
     private func applyAuthenticatedSession(for user: User) async {
         await RevenueCatManager.shared.logIn(appUserID: user.uid, email: user.email)
         await syncService.setAuthMode(makeBearerMode())
+        await syncService.flushPendingGuestDataIfNeeded()
     }
 
     private func fetchSignInMethods(forEmail email: String) async throws -> [String] {
