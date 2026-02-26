@@ -3,6 +3,8 @@ import SwiftUI
 struct GoalSelectionView: View {
     @State private var selected: Set<String> = []
     @State private var navigateNext = false
+    @State private var isSavingProfile = false
+    @State private var syncErrorMessage: String?
 
     private let goals: [(title: String, emoji: String)] = [
         ("Join the 5AM Club", "\u{23F0}"),
@@ -17,6 +19,7 @@ struct GoalSelectionView: View {
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12),
     ]
+    private let syncService = UserDataSyncService.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -59,9 +62,11 @@ struct GoalSelectionView: View {
 
             VStack(spacing: 12) {
                 Button {
-                    navigateNext = true
+                    Task {
+                        await continueToNotifications(saveSelection: true)
+                    }
                 } label: {
-                    Text("Next")
+                    Text(isSavingProfile ? "Saving..." : "Next")
                         .font(.body.weight(.semibold))
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .padding(.vertical, 4)
@@ -69,18 +74,28 @@ struct GoalSelectionView: View {
                         .background(selected.isEmpty ? Color(.systemGray4) : Color.black)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .disabled(selected.isEmpty)
+                .disabled(selected.isEmpty || isSavingProfile)
                 .accessibilityHint("Proceeds after selecting your goals.")
 
                 Button {
-                    navigateNext = true
+                    Task {
+                        await continueToNotifications(saveSelection: false)
+                    }
                 } label: {
                     Text("Skip")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(minHeight: 44)
                 }
+                .disabled(isSavingProfile)
                 .accessibilityHint("Skips goal selection.")
+
+                if let syncErrorMessage {
+                    Text(syncErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
@@ -95,6 +110,29 @@ struct GoalSelectionView: View {
         .navigationDestination(isPresented: $navigateNext) {
             NotificationPermissionView()
         }
+    }
+
+    @MainActor
+    private func continueToNotifications(saveSelection: Bool) async {
+        isSavingProfile = true
+        syncErrorMessage = nil
+        defer { isSavingProfile = false }
+
+        let orderedSelections = goals.map(\.title).filter { selected.contains($0) }
+        let selectionsToPersist = saveSelection ? orderedSelections : []
+
+        do {
+            _ = try await syncService.syncUserProfile(
+                UserProfileUpsertRequest(idealDailyLifeSelections: selectionsToPersist)
+            )
+        } catch {
+            syncErrorMessage = "Couldn't save this preference. Continuing anyway."
+#if DEBUG
+            print("syncUserProfile(idealDailyLifeSelections) failed (non-blocking): \(error.localizedDescription)")
+#endif
+        }
+
+        navigateNext = true
     }
 }
 

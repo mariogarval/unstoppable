@@ -10,6 +10,7 @@ struct UserProfileUpsertRequest: Codable, Sendable {
     let nickname: String?
     let ageGroup: String?
     let gender: String?
+    let idealDailyLifeSelections: [String]?
     let notificationsEnabled: Bool?
     let termsAccepted: Bool?
     let termsOver16Accepted: Bool?
@@ -20,6 +21,7 @@ struct UserProfileUpsertRequest: Codable, Sendable {
         nickname: String? = nil,
         ageGroup: String? = nil,
         gender: String? = nil,
+        idealDailyLifeSelections: [String]? = nil,
         notificationsEnabled: Bool? = nil,
         termsAccepted: Bool? = nil,
         termsOver16Accepted: Bool? = nil,
@@ -29,6 +31,7 @@ struct UserProfileUpsertRequest: Codable, Sendable {
         self.nickname = nickname
         self.ageGroup = ageGroup
         self.gender = gender
+        self.idealDailyLifeSelections = idealDailyLifeSelections
         self.notificationsEnabled = notificationsEnabled
         self.termsAccepted = termsAccepted
         self.termsOver16Accepted = termsOver16Accepted

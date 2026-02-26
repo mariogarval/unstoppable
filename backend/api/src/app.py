@@ -338,6 +338,7 @@ def upsert_user_profile() -> tuple[Any, int]:
         "nickname",
         "ageGroup",
         "gender",
+        "idealDailyLifeSelections",
         "notificationsEnabled",
         "termsAccepted",
         "termsOver16Accepted",

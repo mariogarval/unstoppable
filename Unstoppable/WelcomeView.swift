@@ -11,6 +11,7 @@ struct WelcomeView: View {
     @State private var isAppleSigningIn = false
     @State private var isGoogleSigningIn = false
     @State private var authErrorMessage: String?
+    @State private var navigateNickname = false
     @State private var navigateDemo = false
     @State private var navigatePaywall = false
     @State private var navigateRoutineCreation = false
@@ -215,6 +216,9 @@ struct WelcomeView: View {
                 .navigationDestination(isPresented: $navigateDemo) {
                     RoutinePreviewView()
                 }
+                .navigationDestination(isPresented: $navigateNickname) {
+                    NicknameView()
+                }
                 .navigationDestination(isPresented: $navigatePaywall) {
                     PaywallView()
                 }
@@ -373,7 +377,7 @@ struct WelcomeView: View {
     private func continueAsGuest() async {
         authErrorMessage = nil
         await syncService.enterGuestMode()
-        navigateNickname = true
+        navigateDemo = true
     }
 }
 

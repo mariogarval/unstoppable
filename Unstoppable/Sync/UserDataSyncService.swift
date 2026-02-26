@@ -246,6 +246,7 @@ private actor GuestSyncStore {
             nickname: incoming.nickname ?? existing?.nickname,
             ageGroup: incoming.ageGroup ?? existing?.ageGroup,
             gender: incoming.gender ?? existing?.gender,
+            idealDailyLifeSelections: incoming.idealDailyLifeSelections ?? existing?.idealDailyLifeSelections,
             notificationsEnabled: incoming.notificationsEnabled ?? existing?.notificationsEnabled,
             termsAccepted: incoming.termsAccepted ?? existing?.termsAccepted,
             termsOver16Accepted: incoming.termsOver16Accepted ?? existing?.termsOver16Accepted,
@@ -266,6 +267,9 @@ private actor GuestSyncStore {
         }
         if let gender = request.gender {
             profile["gender"] = .string(gender)
+        }
+        if let idealDailyLifeSelections = request.idealDailyLifeSelections {
+            profile["idealDailyLifeSelections"] = .array(idealDailyLifeSelections.map { .string($0) })
         }
         if let notificationsEnabled = request.notificationsEnabled {
             profile["notificationsEnabled"] = .bool(notificationsEnabled)
