@@ -3,7 +3,7 @@ import SwiftUI
 struct RoutinePreviewView: View {
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 1, total: 6)
+            ThemedProgressBar.light(step: OnboardingProgress.routinePreview, total: OnboardingProgress.totalSteps)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 

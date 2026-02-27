@@ -1,5 +1,22 @@
 import SwiftUI
 
+public enum OnboardingProgress {
+    public static let totalSteps = 10
+
+    public static let routinePreview = 1
+    public static let timerDemo = 2
+    public static let socialProof = 3
+    public static let nickname = 4
+    public static let ageGroup = 5
+    public static let gender = 6
+    public static let goals = 7
+    public static let notifications = 8
+    public static let beforeAfter = 9
+    // Terms is a modal between 9 and 10; keep it aligned with the stage before paywall.
+    public static let terms = 9
+    public static let paywall = 10
+}
+
 public struct OnboardingTheme {
     public struct ProgressColors {
         public let tint: Color

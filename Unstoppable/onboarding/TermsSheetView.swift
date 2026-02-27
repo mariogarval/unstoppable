@@ -21,7 +21,7 @@ struct TermsSheetView: View {
                 .frame(width: 36, height: 5)
                 .padding(.top, 8)
 
-            ThemedProgressBar.light(step: 7, total: 7)
+            ThemedProgressBar.light(step: OnboardingProgress.terms, total: OnboardingProgress.totalSteps)
                 .padding(.top, 12)
                 .padding(.horizontal, 20)
 

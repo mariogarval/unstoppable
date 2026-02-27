@@ -3,7 +3,7 @@ import SwiftUI
 struct SocialProofView: View {
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 3, total: 6)
+            ThemedProgressBar.light(step: OnboardingProgress.socialProof, total: OnboardingProgress.totalSteps)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 

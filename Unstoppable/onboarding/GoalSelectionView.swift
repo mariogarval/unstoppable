@@ -25,7 +25,7 @@ struct GoalSelectionView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 4, total: 7)
+            ThemedProgressBar.light(step: OnboardingProgress.goals, total: OnboardingProgress.totalSteps)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 

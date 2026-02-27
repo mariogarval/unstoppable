@@ -71,6 +71,10 @@ struct PaywallView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                ThemedProgressBar.light(step: OnboardingProgress.paywall, total: OnboardingProgress.totalSteps)
+                    .padding(.top, 16)
+                    .padding(.horizontal, 20)
+
                 // Confetti decorations
                 ConfettiHeader()
 

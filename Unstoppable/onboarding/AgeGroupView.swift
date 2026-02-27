@@ -18,7 +18,7 @@ struct AgeGroupView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 2, total: 7)
+            ThemedProgressBar.light(step: OnboardingProgress.ageGroup, total: OnboardingProgress.totalSteps)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 

@@ -12,7 +12,7 @@ struct NicknameView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ThemedProgressBar.light(step: 1, total: 7)
+            ThemedProgressBar.light(step: OnboardingProgress.nickname, total: OnboardingProgress.totalSteps)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 
