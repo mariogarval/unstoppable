@@ -71,6 +71,17 @@ final class UserDataSyncService {
             }
         }
 
+        if let subscription = state.subscription {
+            do {
+                _ = try await syncSubscriptionSnapshotRemote(subscription)
+                state.subscription = nil
+            } catch {
+#if DEBUG
+                print("flushPendingGuestData(subscription) failed: \(error.localizedDescription)")
+#endif
+            }
+        }
+
         await guestStore.saveState(state)
     }
 
@@ -112,6 +123,16 @@ final class UserDataSyncService {
         }
 
         return try await syncStreakSnapshotRemote(request)
+    }
+
+    @discardableResult
+    func syncSubscriptionSnapshot(_ request: SubscriptionSnapshotUpsertRequest) async throws -> APIAckResponse {
+        guard hasAuthenticatedFirebaseUser else {
+            await guestStore.upsertSubscription(request)
+            return APIAckResponse(ok: true, userId: nil, date: nil)
+        }
+
+        return try await syncSubscriptionSnapshotRemote(request)
     }
 
     func fetchBootstrap() async throws -> BootstrapResponse {
@@ -163,6 +184,10 @@ final class UserDataSyncService {
     private func syncStreakSnapshotRemote(_ request: StreakSnapshotUpsertRequest) async throws -> APIAckResponse {
         try await apiClient.post("/v1/stats/streak/snapshot", body: request, as: APIAckResponse.self)
     }
+
+    private func syncSubscriptionSnapshotRemote(_ request: SubscriptionSnapshotUpsertRequest) async throws -> APIAckResponse {
+        try await apiClient.post("/v1/payments/subscription/snapshot", body: request, as: APIAckResponse.self)
+    }
 }
 
 private struct GuestDraftState: Codable {
@@ -170,12 +195,14 @@ private struct GuestDraftState: Codable {
     var routine: RoutineUpsertRequest?
     var dailyProgressByDate: [String: DailyProgressUpsertRequest]
     var streak: StreakSnapshotUpsertRequest?
+    var subscription: SubscriptionSnapshotUpsertRequest?
 
     static let empty = GuestDraftState(
         profile: nil,
         routine: nil,
         dailyProgressByDate: [:],
-        streak: nil
+        streak: nil,
+        subscription: nil
     )
 }
 
@@ -222,12 +249,19 @@ private actor GuestSyncStore {
         saveState(state)
     }
 
+    func upsertSubscription(_ request: SubscriptionSnapshotUpsertRequest) {
+        var state = loadState()
+        state.subscription = request
+        saveState(state)
+    }
+
     func makeGuestBootstrap() -> BootstrapResponse {
         let state = loadState()
         let profile = makeProfile(from: state.profile)
         let routine = makeRoutine(from: state.routine)
         let streak = makeStreak(from: state.streak)
         let progress = makeProgress(from: state.dailyProgressByDate)
+        let subscription = makeSubscription(from: state.subscription)
 
         return BootstrapResponse(
             userId: "guest-local",
@@ -237,7 +271,7 @@ private actor GuestSyncStore {
             routine: routine,
             streak: streak,
             progress: BootstrapProgress(today: progress),
-            subscription: nil
+            subscription: subscription.isEmpty ? nil : subscription
         )
     }
 
@@ -283,6 +317,9 @@ private actor GuestSyncStore {
         if let termsMarketingAccepted = request.termsMarketingAccepted {
             profile["termsMarketingAccepted"] = .bool(termsMarketingAccepted)
         }
+        if let paymentOption = request.paymentOption {
+            profile["paymentOption"] = .string(paymentOption)
+        }
         return profile
     }
 
@@ -323,6 +360,38 @@ private actor GuestSyncStore {
             "total": .int(progress?.total ?? 0),
             "completedTaskIds": .array((progress?.completedTaskIds ?? []).map { .string($0) })
         ]
+    }
+
+    private func makeSubscription(from request: SubscriptionSnapshotUpsertRequest?) -> [String: JSONValue] {
+        guard let request else { return [:] }
+
+        var subscription: [String: JSONValue] = [:]
+        if let entitlementId = request.entitlementId {
+            subscription["entitlementId"] = .string(entitlementId)
+        }
+        if !request.entitlementIds.isEmpty {
+            subscription["entitlementIds"] = .array(request.entitlementIds.map { .string($0) })
+        }
+        subscription["isActive"] = .bool(request.isActive)
+        if let productId = request.productId {
+            subscription["productId"] = .string(productId)
+        }
+        if let paymentOption = request.paymentOption {
+            subscription["paymentOption"] = .string(paymentOption)
+        }
+        if let store = request.store {
+            subscription["store"] = .string(store)
+        }
+        if let periodType = request.periodType {
+            subscription["periodType"] = .string(periodType)
+        }
+        if let expirationAt = request.expirationAt {
+            subscription["expirationAt"] = .string(expirationAt.ISO8601Format())
+        }
+        if let gracePeriodExpiresAt = request.gracePeriodExpiresAt {
+            subscription["gracePeriodExpiresAt"] = .string(gracePeriodExpiresAt.ISO8601Format())
+        }
+        return subscription
     }
 }
 

@@ -5,6 +5,8 @@ struct GoalSelectionView: View {
     @State private var navigateNext = false
     @State private var isSavingProfile = false
     @State private var syncErrorMessage: String?
+    @State private var didHydrateSelections = false
+    @State private var hasUserInteracted = false
 
     private let goals: [(title: String, emoji: String)] = [
         ("Join the 5AM Club", "\u{23F0}"),
@@ -45,6 +47,7 @@ struct GoalSelectionView: View {
                         emoji: goal.emoji,
                         isSelected: selected.contains(goal.title)
                     ) {
+                        hasUserInteracted = true
                         withAnimation(.easeInOut(duration: 0.2)) {
                             if selected.contains(goal.title) {
                                 selected.remove(goal.title)
@@ -110,6 +113,9 @@ struct GoalSelectionView: View {
         .navigationDestination(isPresented: $navigateNext) {
             NotificationPermissionView()
         }
+        .task {
+            await hydrateSelectionsIfNeeded()
+        }
     }
 
     @MainActor
@@ -133,6 +139,39 @@ struct GoalSelectionView: View {
         }
 
         navigateNext = true
+    }
+
+    @MainActor
+    private func hydrateSelectionsIfNeeded() async {
+        guard !didHydrateSelections else { return }
+        didHydrateSelections = true
+
+        do {
+            let bootstrap = try await syncService.fetchBootstrap()
+            let savedSelections = profileStringArray("idealDailyLifeSelections", from: bootstrap.profile)
+            guard !savedSelections.isEmpty else { return }
+            guard !hasUserInteracted else { return }
+
+            let allowedGoals = Set(goals.map(\.title))
+            let hydratedSelections = savedSelections.filter { allowedGoals.contains($0) }
+            selected = Set(hydratedSelections)
+#if DEBUG
+            print("GoalSelectionView hydrated idealDailyLifeSelections raw=\(savedSelections) filtered=\(hydratedSelections)")
+#endif
+        } catch {
+#if DEBUG
+            print("GoalSelectionView hydrateSelectionsIfNeeded failed: \(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private func profileStringArray(_ key: String, from profile: [String: JSONValue]) -> [String] {
+        guard let value = profile[key] else { return [] }
+        guard case .array(let values) = value else { return [] }
+        return values.compactMap {
+            guard case .string(let str) = $0 else { return nil }
+            return str
+        }
     }
 }
 

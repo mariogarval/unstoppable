@@ -199,9 +199,15 @@ struct WelcomeView: View {
                 .task {
                     if !didHandleRestoreRouting {
                         didHandleRestoreRouting = true
+                        if UserDefaults.standard.bool(forKey: "stayOnWelcomeAfterSignOut") {
+                            UserDefaults.standard.set(false, forKey: "stayOnWelcomeAfterSignOut")
+                            return
+                        }
                         let restored = await authSession.restoreSessionIfPossible()
                         let bootstrap = await bootstrapIfNeeded()
                         if restored, let bootstrap {
+                            routeAuthenticatedUser(using: bootstrap)
+                        } else if let bootstrap, shouldResumeGuestFlow(using: bootstrap) {
                             routeAuthenticatedUser(using: bootstrap)
                         } else if restored {
                             authErrorMessage = "Signed in, but failed to load your account. Please try again."
@@ -314,8 +320,7 @@ struct WelcomeView: View {
             return
         }
 
-        let hasCreatedRoutine = UserDefaults.standard.bool(forKey: "hasCreatedRoutine")
-        if !hasCreatedRoutine {
+        if !hasRoutineConfigured(bootstrap) {
             navigateRoutineCreation = true
             return
         }
@@ -352,6 +357,7 @@ struct WelcomeView: View {
         }
 
         return hasSubscriptionString("paymentOption", from: bootstrap)
+            || hasProfileString("paymentOption", from: bootstrap)
     }
 
     private func hasProfileString(_ key: String, from bootstrap: BootstrapResponse) -> Bool {
@@ -373,11 +379,28 @@ struct WelcomeView: View {
         return !str.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private func shouldResumeGuestFlow(using bootstrap: BootstrapResponse) -> Bool {
+        if hasProfileString("nickname", from: bootstrap) { return true }
+        if !bootstrap.routine.isEmpty { return true }
+        if hasSelectedPaymentOption(bootstrap) { return true }
+        return false
+    }
+
+    private func hasRoutineConfigured(_ bootstrap: BootstrapResponse) -> Bool {
+        guard let tasksValue = bootstrap.routine["tasks"] else { return false }
+        guard case .array(let taskValues) = tasksValue else { return false }
+        return !taskValues.isEmpty
+    }
+
     @MainActor
     private func continueAsGuest() async {
         authErrorMessage = nil
         await syncService.enterGuestMode()
-        navigateDemo = true
+        if let bootstrap = await bootstrapIfNeeded(force: true) {
+            routeAuthenticatedUser(using: bootstrap)
+        } else {
+            navigateDemo = true
+        }
     }
 }
 

@@ -172,6 +172,9 @@ private struct HomeTab: View {
     @State private var showingEditTime = false
     @State private var showingTemplates = false
     @State private var showingTimer = false
+    @State private var didHydrateRoutine = false
+    @State private var isHydratingRoutine = true
+    @State private var loadedPendingTasks = false
     let streakManager: StreakManager
     @Bindable var settings: AppSettings
     let onTasksCountChange: (Int) -> Void
@@ -190,16 +193,16 @@ private struct HomeTab: View {
         return Double(completedCount) / Double(tasks.count)
     }
 
-    private func loadPendingTasksIfNeeded() {
+    private func loadPendingTasksIfNeeded() -> Bool {
         guard let data = UserDefaults.standard.data(forKey: "pendingRoutineTasks"),
               let pendingTasks = try? JSONDecoder().decode([PendingTask].self, from: data),
-              !pendingTasks.isEmpty else { return }
+              !pendingTasks.isEmpty else { return false }
         withAnimation(.easeInOut(duration: 0.3)) {
             tasks = pendingTasks.map { RoutineTask(title: $0.title, icon: $0.icon, duration: $0.duration) }
             onTasksCountChange(tasks.count)
         }
         UserDefaults.standard.removeObject(forKey: "pendingRoutineTasks")
-        syncRoutineSnapshot()
+        return true
     }
 
     private func applyTemplate(_ templateTasks: [TemplateTask]) {
@@ -213,6 +216,8 @@ private struct HomeTab: View {
     }
 
     private func syncRoutineSnapshot() {
+        guard !isHydratingRoutine else { return }
+
         let request = RoutineUpsertRequest(
             routineTime: Self.routineTimeFormatter.string(from: settings.routineTime),
             tasks: tasks.map {
@@ -235,6 +240,75 @@ private struct HomeTab: View {
 #endif
             }
         }
+    }
+
+    @MainActor
+    private func hydrateRoutineFromBootstrapIfNeeded() async {
+        guard !didHydrateRoutine else { return }
+        didHydrateRoutine = true
+        defer { isHydratingRoutine = false }
+
+        // If onboarding just created local pending tasks, keep those and push once.
+        if loadedPendingTasks {
+            syncRoutineSnapshot()
+            return
+        }
+
+        do {
+            let bootstrap = try await syncService.fetchBootstrap()
+
+            if let routineTimeString = routineString("routineTime", from: bootstrap.routine),
+               let parsedTime = Self.parseRoutineTime(routineTimeString) {
+                settings.routineTime = parsedTime
+            }
+
+            let remoteTasks = routineTasks(from: bootstrap.routine)
+            if !remoteTasks.isEmpty {
+                tasks = remoteTasks
+                onTasksCountChange(tasks.count)
+            }
+        } catch {
+#if DEBUG
+            print("HomeTab hydrateRoutineFromBootstrap failed: \(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private func routineString(_ key: String, from routine: [String: JSONValue]) -> String? {
+        guard let value = routine[key] else { return nil }
+        if case .string(let stringValue) = value {
+            return stringValue
+        }
+        return nil
+    }
+
+    private func routineTasks(from routine: [String: JSONValue]) -> [RoutineTask] {
+        guard let value = routine["tasks"], case .array(let taskValues) = value else { return [] }
+
+        return taskValues.compactMap { taskValue in
+            guard case .object(let taskObject) = taskValue else { return nil }
+            guard case .string(let title)? = taskObject["title"] else { return nil }
+            guard case .string(let icon)? = taskObject["icon"] else { return nil }
+
+            let duration: Int = {
+                if case .int(let value)? = taskObject["duration"] { return value }
+                if case .double(let value)? = taskObject["duration"] { return Int(value) }
+                return 5
+            }()
+
+            let isCompleted: Bool = {
+                if case .bool(let value)? = taskObject["isCompleted"] { return value }
+                return false
+            }()
+
+            return RoutineTask(title: title, icon: icon, duration: duration, isCompleted: isCompleted)
+        }
+    }
+
+    private static func parseRoutineTime(_ value: String) -> Date? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return routineTimeFormatter.date(from: trimmed)
     }
 
     private static let routineTimeFormatter: DateFormatter = {
@@ -412,11 +486,14 @@ private struct HomeTab: View {
             syncRoutineSnapshot()
         }
         .onAppear {
-            loadPendingTasksIfNeeded()
+            loadedPendingTasks = loadPendingTasksIfNeeded()
             for i in tasks.indices {
                 tasks[i].isCompleted = streakManager.isCompleted(taskID: tasks[i].id)
             }
             onTasksCountChange(tasks.count)
+        }
+        .task {
+            await hydrateRoutineFromBootstrapIfNeeded()
         }
     }
 }
@@ -1233,12 +1310,18 @@ private struct SettingsTab: View {
 
         do {
             try await AuthSessionManager.shared.signOut()
-            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
-            UserDefaults.standard.set(false, forKey: "hasCreatedRoutine")
-            onSignedOut()
         } catch {
-            signOutErrorMessage = error.localizedDescription
+#if DEBUG
+            print("SettingsTab signOut failed, continuing with local sign-out route: \(error.localizedDescription)")
+#endif
         }
+
+        await syncService.enterGuestMode()
+        UserDefaults.standard.set(true, forKey: "stayOnWelcomeAfterSignOut")
+        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+        UserDefaults.standard.set(false, forKey: "hasCreatedRoutine")
+        signOutErrorMessage = nil
+        onSignedOut()
     }
 
     private static func infoBool(forKey key: String, defaultValue: Bool) -> Bool {

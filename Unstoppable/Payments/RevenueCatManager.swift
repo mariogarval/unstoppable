@@ -42,6 +42,7 @@ final class RevenueCatManager: NSObject, ObservableObject {
     private let entitlementID = "premium"
     private let apiKeyInfoKey = "REVENUECAT_IOS_API_KEY"
     private let backendSyncEnabledInfoKey = "REVENUECAT_ENABLE_BACKEND_SYNC"
+    private let syncService = UserDataSyncService.shared
 
     private var packageByID: [String: Package] = [:]
     private lazy var isBackendSyncEnabled = configuredBackendSyncEnabled()
@@ -342,11 +343,7 @@ final class RevenueCatManager: NSObject, ObservableObject {
         )
 
         do {
-            let _: APIAckResponse = try await APIClient.shared.post(
-                "/v1/payments/subscription/snapshot",
-                body: request,
-                as: APIAckResponse.self
-            )
+            _ = try await syncService.syncSubscriptionSnapshot(request)
         } catch {
 #if DEBUG
             print("RevenueCat subscription snapshot sync failed: \(error.localizedDescription)")
