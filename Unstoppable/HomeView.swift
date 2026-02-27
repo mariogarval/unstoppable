@@ -736,7 +736,7 @@ private struct AddTaskSheet: View {
 
     private let availableIcons = [
         "bed.double.fill", "drop.fill", "brain.head.profile.fill", "iphone.slash", "fork.knife",
-        "sunrise.fill", "book.fill", "figure.walk", "bolt.heart", "leaf.fill"
+        "sun.max.fill", "book.fill", "figure.walk", "bolt.fill", "leaf.fill"
     ]
 
     private let durations = [1, 2, 5, 10, 15, 20, 30, 45, 60]
@@ -757,7 +757,7 @@ private struct AddTaskSheet: View {
                 Section(header: Text("Icon")) {
                     // Selected icon preview
                     VStack(spacing: 8) {
-                        Image(systemName: icon)
+                        Image(systemName: normalizedIconName(icon))
                             .font(.system(size: 36))
                             .foregroundStyle(.orange)
                             .frame(width: 72, height: 72)
@@ -770,20 +770,23 @@ private struct AddTaskSheet: View {
                     // Icon grid
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
                         ForEach(availableIcons, id: \.self) { name in
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.15)) {
-                                    icon = name
+                            Image(systemName: name)
+                                .font(.title3)
+                                .foregroundStyle(icon == name ? .white : .primary)
+                                .frame(width: 44, height: 44)
+                                .background(icon == name ? Color.orange : Color(.systemGray5))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .contentShape(RoundedRectangle(cornerRadius: 10))
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.15)) {
+                                        icon = name
+                                    }
                                 }
-                            } label: {
-                                Image(systemName: name)
-                                    .font(.title3)
-                                    .foregroundStyle(icon == name ? .white : .primary)
-                                    .frame(width: 44, height: 44)
-                                    .background(icon == name ? Color.orange : Color(.systemGray5))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .accessibilityElement()
+                                .accessibilityLabel(Text(name))
+                                .accessibilityAddTraits(.isButton)
                             }
                         }
-                    }
                     .padding(.vertical, 4)
                 }
 
@@ -808,7 +811,7 @@ private struct AddTaskSheet: View {
                         if taskCount >= 5 && !isPremium {
                             showPaywall = true
                         } else {
-                            onAdd(title, icon, duration)
+                            onAdd(title, normalizedIconName(icon), duration)
                             dismiss()
                         }
                     }
@@ -821,6 +824,17 @@ private struct AddTaskSheet: View {
                     PaywallView()
                 }
             }
+        }
+    }
+
+    private func normalizedIconName(_ raw: String) -> String {
+        switch raw {
+        case "sunrise.fill":
+            return "sun.max.fill"
+        case "bolt.heart":
+            return "bolt.fill"
+        default:
+            return raw
         }
     }
 }

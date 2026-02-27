@@ -445,7 +445,7 @@ private struct RCAddTaskSheet: View {
 
     private let availableIcons = [
         "bed.double.fill", "drop.fill", "brain.head.profile.fill", "iphone.slash", "fork.knife",
-        "sunrise.fill", "book.fill", "figure.walk", "bolt.heart", "leaf.fill",
+        "sun.max.fill", "book.fill", "figure.walk", "bolt.fill", "leaf.fill",
         "alarm.fill", "figure.run", "dumbbell.fill", "pencil.line", "sparkles"
     ]
     private let durations = [1, 2, 5, 10, 15, 20, 30, 45, 60]
@@ -463,7 +463,7 @@ private struct RCAddTaskSheet: View {
 
                 Section(header: Text("Icon")) {
                     VStack(spacing: 8) {
-                        Image(systemName: icon)
+                        Image(systemName: normalizedIconName(icon))
                             .font(.system(size: 36))
                             .foregroundStyle(.orange)
                             .frame(width: 72, height: 72)
@@ -478,16 +478,19 @@ private struct RCAddTaskSheet: View {
                         spacing: 12
                     ) {
                         ForEach(availableIcons, id: \.self) { name in
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.15)) { icon = name }
-                            } label: {
-                                Image(systemName: name)
-                                    .font(.title3)
-                                    .foregroundStyle(icon == name ? .white : .primary)
-                                    .frame(width: 44, height: 44)
-                                    .background(icon == name ? Color.orange : Color(.systemGray5))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                            }
+                            Image(systemName: name)
+                                .font(.title3)
+                                .foregroundStyle(icon == name ? .white : .primary)
+                                .frame(width: 44, height: 44)
+                                .background(icon == name ? Color.orange : Color(.systemGray5))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .contentShape(RoundedRectangle(cornerRadius: 10))
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.15)) { icon = name }
+                                }
+                                .accessibilityElement()
+                                .accessibilityLabel(Text(name))
+                                .accessibilityAddTraits(.isButton)
                         }
                     }
                     .padding(.vertical, 4)
@@ -510,13 +513,24 @@ private struct RCAddTaskSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
-                        onAdd(title, icon, duration)
+                        onAdd(title, normalizedIconName(icon), duration)
                         dismiss()
                     }
                     .fontWeight(.semibold)
                     .disabled(!canAdd)
                 }
             }
+        }
+    }
+
+    private func normalizedIconName(_ raw: String) -> String {
+        switch raw {
+        case "sunrise.fill":
+            return "sun.max.fill"
+        case "bolt.heart":
+            return "bolt.fill"
+        default:
+            return raw
         }
     }
 }
@@ -526,4 +540,3 @@ private struct RCAddTaskSheet: View {
         RoutineCreationView()
     }
 }
-
