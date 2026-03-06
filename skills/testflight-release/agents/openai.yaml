@@ -1,0 +1,5 @@
+version: 1
+interface:
+  display_name: TestFlight Release
+  short_description: Archive, export, and upload Unstoppable to TestFlight from CLI.
+  default_prompt: Run the Unstoppable TestFlight CLI release workflow, verify archive/export/upload status, and report any signing or App Store Connect blockers.
