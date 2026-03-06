@@ -13,6 +13,10 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Googl
 - Base URL (dev): `https://unstoppable-api-1094359674860.us-central1.run.app`
 - Database: Firestore (Native mode, `us-central1`)
 
+## TODO
+
+- Publish the API at `https://api.unstoppable.app`
+
 ## Current Auth Status (Apple/Google + Firebase)
 
 - App supports `Continue with Apple` and `Continue with Google` from `Unstoppable/WelcomeView.swift`.
@@ -117,7 +121,7 @@ Build-time config keys (in project build settings / Info.plist injection):
 
 Current defaults:
 - Debug: supports dev auth (`X-User-Id`, default `dev-user-001`) and switches to bearer token auth after Apple/Google sign-in.
-- Release: points to `https://api.unstoppable.app` with dev auth disabled.
+- Release: points to `https://unstoppable-api-1094359674860.us-central1.run.app` with dev auth disabled.
 
 ## Data Model and Sync Behavior
 

@@ -13,3 +13,4 @@ Unstoppable/Config/Secrets.local.xcconfig
 xcuserdata/
 
 *.log
+.claude

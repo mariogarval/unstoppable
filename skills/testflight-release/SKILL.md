@@ -10,11 +10,13 @@ Use this skill for CLI-based TestFlight releases of the `Unstoppable` app.
 ## Workflow
 
 1. Confirm signing and archive viability.
-2. Run the archive script:
+2. Bump the build number:
+   `scripts/testflight/bump_build_number.sh`
+3. Run the archive script:
    `scripts/testflight/archive_app.sh`
-3. Export the IPA:
+4. Export the IPA:
    `scripts/testflight/export_ipa.sh`
-4. Upload the IPA:
+5. Upload the IPA:
    `scripts/testflight/upload_ipa.sh`
 
 For one-shot execution, run:
@@ -38,4 +40,6 @@ The upload script sets `API_PRIVATE_KEYS_DIR` from `APP_STORE_CONNECT_API_KEY_PA
 - Archive path defaults to `build/Unstoppable.xcarchive`.
 - Export path defaults to `build/testflight-export`.
 - Export uses `scripts/testflight/ExportOptions.plist`.
+- Build number comes from `CURRENT_PROJECT_VERSION` in `Unstoppable.xcodeproj/project.pbxproj`.
+- `scripts/testflight/release_to_testflight.sh` now auto-increments that build number before archiving.
 - If export fails with missing profiles, rerun using the provided script because it includes `-allowProvisioningUpdates`.
