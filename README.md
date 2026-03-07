@@ -197,3 +197,12 @@ Debug failure logs to watch:
 
 No persistent shell-output workflow is required in this repository.
 Create command or session logs only when explicitly requested.
+
+## TestFlight Release Notes
+
+- `scripts/testflight/release_to_testflight.sh` bumps `CURRENT_PROJECT_VERSION` before archive/export/upload.
+- The bump logic queries App Store Connect for the latest uploaded build of app id `6759273918` and sets the next build number to `latest + 1`.
+- Required env vars for release automation:
+  - `APP_STORE_CONNECT_API_KEY_ID`
+  - `APP_STORE_CONNECT_API_ISSUER_ID`
+  - `APP_STORE_CONNECT_API_KEY_PATH` (optional if the key is in `~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8`)

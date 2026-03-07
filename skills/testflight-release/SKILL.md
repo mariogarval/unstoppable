@@ -40,6 +40,6 @@ The upload script sets `API_PRIVATE_KEYS_DIR` from `APP_STORE_CONNECT_API_KEY_PA
 - Archive path defaults to `build/Unstoppable.xcarchive`.
 - Export path defaults to `build/testflight-export`.
 - Export uses `scripts/testflight/ExportOptions.plist`.
-- Build number comes from `CURRENT_PROJECT_VERSION` in `Unstoppable.xcodeproj/project.pbxproj`.
-- `scripts/testflight/release_to_testflight.sh` now auto-increments that build number before archiving.
+- Build number is derived from the highest uploaded App Store Connect build version for app id `6759273918`.
+- `scripts/testflight/release_to_testflight.sh` sets `CURRENT_PROJECT_VERSION` to `latest_uploaded_build + 1` before archiving.
 - If export fails with missing profiles, rerun using the provided script because it includes `-allowProvisioningUpdates`.
