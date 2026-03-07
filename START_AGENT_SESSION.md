@@ -67,10 +67,10 @@ Read /Users/luisgalvez/Projects/unstoppable/AGENTS.md and /Users/luisgalvez/Proj
 
 Act as the lead agent.
 
-Goal: Fix this bug: [bug description]
+Goal: Fix this bug: When resetting local profile, even if the user logged in with Google or Apple, the streaks get reset too.
 
 Expected behavior:
-[what should happen]
+Streaks should be reset just for local guest that hasn't signed in. If user is signed in, the streaks should be hydrated from the API, so when the user logs out and logs in again, it can keep it's streks.
 
 Constraints:
 - Start by capturing git status and current branch.

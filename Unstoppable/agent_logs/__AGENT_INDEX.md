@@ -3,7 +3,29 @@
 **Last Updated**: 2026-03-07
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 13 markdown documents
+**Files**: 14 markdown documents
+
+---
+
+## March 7, 2026 - Home Routine State Isolation
+
+### `HOME_ROUTINE_STATE_ISOLATION_20260307.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-03-07 | **Status**: Complete
+**Branch**: `agentic-dev-v1`
+
+**Separated guest and signed-in routine/onboarding state, stopped guest-to-account routine leakage on sign-in, restored Home task completion after auth/bootstrap, and hardened settings bootstrap against late overwrites.**
+
+**Problem Solved**: Prevented routine/streak/onboarding state from leaking across guest and authenticated sessions on the same device, and fixed restored task checks disappearing after returning from Stats.
+
+**Key Results**:
+- Scoped routine, onboarding, and streak local state to the active auth context.
+- Removed automatic guest-data flush into authenticated accounts during sign-in/session restore.
+- Hydrated stable routine completion back into `StreakManager` so Home -> Stats -> Home preserves checked state after login.
+- Revalidated with `xcodebuild` and `OPEN_SIMULATOR_APP=1 ./scripts/run_ios_sim.sh "iPhone 17 Pro"`.
+
+**Next Steps**: Re-run manual Google and Apple auth smoke tests if bootstrap payloads or auth-transition behavior change again.
+
+**Related**: `ROUTINE_STATS_USER_SCOPING_20260307.md` (initial scoped streak/routine stats work)
 
 ---
 
@@ -281,6 +303,7 @@
 
 | Topic | Location |
 |-------|----------|
+| Home routine state isolation across guest/auth | `HOME_ROUTINE_STATE_ISOLATION_20260307.md` |
 | Routine stats user scoping | `ROUTINE_STATS_USER_SCOPING_20260307.md` |
 | Home settings bootstrap sync (routine time + notifications) | `HOME_SETTINGS_BOOTSTRAP_SYNC_20260222.md` |
 | Stable API endpoint revert | `API_BASE_URL_STABLE_ENDPOINT_20260221.md` |
