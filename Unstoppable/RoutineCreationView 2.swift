@@ -392,7 +392,7 @@ struct RoutineCreationView: View {
 
     private func savePendingTasks() {
         if let data = try? JSONEncoder().encode(tasks) {
-            UserDefaults.standard.set(data, forKey: "pendingRoutineTasks")
+            UserDefaults.standard.set(data, forKey: StreakManager.userScopedDefaultsKey("pendingRoutineTasks"))
         }
 
         let request = RoutineUpsertRequest(

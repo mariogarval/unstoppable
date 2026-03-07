@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 // MARK: - Day Record
 
@@ -12,6 +13,7 @@ struct DayRecord: Codable {
 @Observable
 final class StreakManager {
     static let shared = StreakManager()
+    private static let guestUserID = "guest-local"
 
     private(set) var currentStreak: Int = 0
     private(set) var longestStreak: Int = 0
@@ -24,16 +26,15 @@ final class StreakManager {
     // Persisted: daily completion records keyed by "yyyy-MM-dd"
     private var dailyRecords: [String: DayRecord] = [:]
     private var lastQualifiedDate: String = ""
+    private var activeStorageScope = guestUserID
 
     private let defaults = UserDefaults.standard
     private let syncService = UserDataSyncService.shared
-    private static let dailyKey = "streak.dailyRecords"
-    private static let currentKey = "streak.current"
-    private static let longestKey = "streak.longest"
-    private static let qualifiedKey = "streak.lastQualified"
+    private static let keyPrefix = "streak.v2"
     private var didHydrateFromBootstrap = false
 
     private init() {
+        activeStorageScope = Self.storageScopeUserID()
         load()
     }
 
@@ -41,6 +42,8 @@ final class StreakManager {
 
     /// Call once at app launch. Checks if user missed yesterday and resets streak.
     func checkAppLaunch() {
+        refreshStorageScopeIfNeeded()
+
         let today = Self.dateString(for: Date())
         let yesterday = Self.dateString(for: Self.yesterday())
 
@@ -56,23 +59,68 @@ final class StreakManager {
     // MARK: - Task Completion
 
     func completeTask(taskID: UUID, totalTasks: Int) {
+        refreshStorageScopeIfNeeded()
         todayCompletedIDs.insert(taskID)
         updateToday(totalTasks: totalTasks)
     }
 
     func uncompleteTask(taskID: UUID, totalTasks: Int) {
+        refreshStorageScopeIfNeeded()
         todayCompletedIDs.remove(taskID)
         updateToday(totalTasks: totalTasks)
     }
 
     func isCompleted(taskID: UUID) -> Bool {
-        todayCompletedIDs.contains(taskID)
+        refreshStorageScopeIfNeeded()
+        return todayCompletedIDs.contains(taskID)
     }
 
     /// Batch-record completions from RoutineTimerView
     func recordBatchCompletion(completedIDs: Set<UUID>, totalTasks: Int) {
+        refreshStorageScopeIfNeeded()
         todayCompletedIDs.formUnion(completedIDs)
         updateToday(totalTasks: totalTasks)
+    }
+
+    func refreshStorageScopeIfNeeded() {
+        let scope = Self.storageScopeUserID()
+        guard scope != activeStorageScope else { return }
+
+        activeStorageScope = scope
+        todayCompletedIDs = []
+        streakBrokenMessage = nil
+        milestoneMessage = nil
+        didHydrateFromBootstrap = false
+        load()
+    }
+
+    static func clearLocalTestingState() {
+        let defaults = UserDefaults.standard
+        let legacyKeys = [
+            "streak.dailyRecords",
+            "streak.current",
+            "streak.longest",
+            "streak.lastQualified"
+        ]
+
+        for key in defaults.dictionaryRepresentation().keys {
+            if key.hasPrefix("\(keyPrefix).") || key.hasPrefix("pendingRoutineTasks.") {
+                defaults.removeObject(forKey: key)
+            }
+        }
+
+        legacyKeys.forEach { defaults.removeObject(forKey: $0) }
+
+        let manager = shared
+        manager.todayCompletedIDs = []
+        manager.dailyRecords = [:]
+        manager.currentStreak = 0
+        manager.longestStreak = 0
+        manager.lastQualifiedDate = ""
+        manager.streakBrokenMessage = nil
+        manager.milestoneMessage = nil
+        manager.didHydrateFromBootstrap = false
+        manager.activeStorageScope = storageScopeUserID()
     }
 
     // MARK: - Queries
@@ -81,11 +129,13 @@ final class StreakManager {
     func getLongestStreak() -> Int { longestStreak }
 
     func getTodayProgress(totalTasks: Int) -> (completed: Int, total: Int) {
-        (todayCompletedIDs.count, totalTasks)
+        refreshStorageScopeIfNeeded()
+        return (todayCompletedIDs.count, totalTasks)
     }
 
     func completedCount(on date: Date) -> Int {
-        dailyRecords[Self.dateString(for: date)]?.completed ?? 0
+        refreshStorageScopeIfNeeded()
+        return dailyRecords[Self.dateString(for: date)]?.completed ?? 0
     }
 
     func getWeekData() -> [(date: Date, count: Int)] {
@@ -120,6 +170,7 @@ final class StreakManager {
     }
 
     func successRate(totalTasks: Int) -> Int {
+        refreshStorageScopeIfNeeded()
         guard totalTasks > 0 else { return 0 }
         let active = dailyRecords.values.filter { $0.total > 0 }
         guard !active.isEmpty else { return 0 }
@@ -128,11 +179,13 @@ final class StreakManager {
     }
 
     func totalTasksCompleted() -> Int {
-        dailyRecords.values.reduce(0) { $0 + $1.completed }
+        refreshStorageScopeIfNeeded()
+        return dailyRecords.values.reduce(0) { $0 + $1.completed }
     }
 
     func hasAnyData() -> Bool {
-        dailyRecords.values.contains { $0.completed > 0 }
+        refreshStorageScopeIfNeeded()
+        return dailyRecords.values.contains { $0.completed > 0 }
     }
 
     // MARK: - Private
@@ -180,6 +233,7 @@ final class StreakManager {
     }
 
     func hydrateFromBootstrapIfNeeded(streak: [String: JSONValue]) {
+        refreshStorageScopeIfNeeded()
         guard !didHydrateFromBootstrap else { return }
         didHydrateFromBootstrap = true
 
@@ -218,22 +272,35 @@ final class StreakManager {
 
     private func save() {
         if let data = try? JSONEncoder().encode(dailyRecords) {
-            defaults.set(data, forKey: Self.dailyKey)
+            defaults.set(data, forKey: scopedKey("dailyRecords"))
         }
-        defaults.set(currentStreak, forKey: Self.currentKey)
-        defaults.set(longestStreak, forKey: Self.longestKey)
-        defaults.set(lastQualifiedDate, forKey: Self.qualifiedKey)
+        defaults.set(currentStreak, forKey: scopedKey("current"))
+        defaults.set(longestStreak, forKey: scopedKey("longest"))
+        defaults.set(lastQualifiedDate, forKey: scopedKey("lastQualified"))
         syncStreakSnapshot()
     }
 
     private func load() {
-        if let data = defaults.data(forKey: Self.dailyKey),
+        dailyRecords = [:]
+        currentStreak = 0
+        longestStreak = 0
+        lastQualifiedDate = ""
+
+        if let data = defaults.data(forKey: scopedKey("dailyRecords")),
            let records = try? JSONDecoder().decode([String: DayRecord].self, from: data) {
             dailyRecords = records
         }
-        currentStreak = defaults.integer(forKey: Self.currentKey)
-        longestStreak = defaults.integer(forKey: Self.longestKey)
-        lastQualifiedDate = defaults.string(forKey: Self.qualifiedKey) ?? ""
+        currentStreak = defaults.integer(forKey: scopedKey("current"))
+        longestStreak = defaults.integer(forKey: scopedKey("longest"))
+        lastQualifiedDate = defaults.string(forKey: scopedKey("lastQualified")) ?? ""
+    }
+
+    private func scopedKey(_ suffix: String) -> String {
+        "\(Self.keyPrefix).\(activeStorageScope).\(suffix)"
+    }
+
+    static func userScopedDefaultsKey(_ base: String) -> String {
+        "\(base).\(storageScopeUserID())"
     }
 
     // MARK: - Date Helpers
@@ -248,6 +315,11 @@ final class StreakManager {
 
     private static func yesterday() -> Date {
         Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+    }
+
+    private static func storageScopeUserID() -> String {
+        let rawUserID = Auth.auth().currentUser?.uid.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return rawUserID.isEmpty ? guestUserID : rawUserID
     }
 
     private func syncStreakSnapshot() {

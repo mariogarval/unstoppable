@@ -71,6 +71,7 @@ final class AuthSessionManager {
     @discardableResult
     func restoreSessionIfPossible() async -> Bool {
         guard let currentUser = Auth.auth().currentUser else { return false }
+        StreakManager.shared.refreshStorageScopeIfNeeded()
         await RevenueCatManager.shared.logIn(appUserID: currentUser.uid, email: currentUser.email)
         await syncService.setAuthMode(makeBearerMode())
         await syncService.flushPendingGuestDataIfNeeded()
@@ -119,6 +120,7 @@ final class AuthSessionManager {
     func signOut() async throws {
         GIDSignIn.sharedInstance.signOut()
         try Auth.auth().signOut()
+        StreakManager.shared.refreshStorageScopeIfNeeded()
         clearPendingAppleLinkState()
         currentAppleNonce = nil
         await RevenueCatManager.shared.logOut()
@@ -220,6 +222,7 @@ final class AuthSessionManager {
     }
 
     private func applyAuthenticatedSession(for user: User) async {
+        StreakManager.shared.refreshStorageScopeIfNeeded()
         await RevenueCatManager.shared.logIn(appUserID: user.uid, email: user.email)
         await syncService.setAuthMode(makeBearerMode())
         await syncService.flushPendingGuestDataIfNeeded()
@@ -384,4 +387,3 @@ final class AuthSessionManager {
         return hashed.map { String(format: "%02x", $0) }.joined()
     }
 }
-

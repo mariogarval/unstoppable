@@ -194,14 +194,15 @@ private struct HomeTab: View {
     }
 
     private func loadPendingTasksIfNeeded() -> Bool {
-        guard let data = UserDefaults.standard.data(forKey: "pendingRoutineTasks"),
+        let storageKey = StreakManager.userScopedDefaultsKey("pendingRoutineTasks")
+        guard let data = UserDefaults.standard.data(forKey: storageKey),
               let pendingTasks = try? JSONDecoder().decode([PendingTask].self, from: data),
               !pendingTasks.isEmpty else { return false }
         withAnimation(.easeInOut(duration: 0.3)) {
             tasks = pendingTasks.map { RoutineTask(title: $0.title, icon: $0.icon, duration: $0.duration) }
             onTasksCountChange(tasks.count)
         }
-        UserDefaults.standard.removeObject(forKey: "pendingRoutineTasks")
+        UserDefaults.standard.removeObject(forKey: storageKey)
         return true
     }
 
@@ -1389,12 +1390,12 @@ private struct SettingsTab: View {
         let keysToRemove = [
             "hasCompletedOnboarding",
             "hasCreatedRoutine",
-            "pendingRoutineTasks",
             "stayOnWelcomeAfterSignOut",
             "guest.sync.draft.state.v1"
         ]
 
         keysToRemove.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        StreakManager.clearLocalTestingState()
     }
 
     private func syncNotifications(enabled: Bool) async {
