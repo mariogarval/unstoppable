@@ -73,6 +73,7 @@ final class AuthSessionManager {
         guard let currentUser = Auth.auth().currentUser else { return false }
         await RevenueCatManager.shared.logIn(appUserID: currentUser.uid, email: currentUser.email)
         await syncService.setAuthMode(makeBearerMode())
+        await syncService.flushPendingGuestDataIfNeeded()
         return true
     }
 
@@ -221,8 +222,13 @@ final class AuthSessionManager {
     private func applyAuthenticatedSession(for user: User) async {
         await RevenueCatManager.shared.logIn(appUserID: user.uid, email: user.email)
         await syncService.setAuthMode(makeBearerMode())
+        await syncService.flushPendingGuestDataIfNeeded()
     }
 
+    /// `fetchSignInMethods` is deprecated and unreliable when Email Enumeration Protection is enabled.
+    /// It may return an empty list even for existing accounts.
+    /// Handle this ambiguity carefully in your logic.
+    @available(*, deprecated, message: "fetchSignInMethods is unreliable with Email Enumeration Protection enabled and may return empty list even for existing accounts.")
     private func fetchSignInMethods(forEmail email: String) async throws -> [String] {
         try await withCheckedThrowingContinuation { continuation in
             Auth.auth().fetchSignInMethods(forEmail: email) { methods, error in
@@ -231,6 +237,7 @@ final class AuthSessionManager {
                     return
                 }
 
+                // If methods is empty, this could mean either no providers or enumeration protection is enabled
                 continuation.resume(returning: methods ?? [])
             }
         }
@@ -377,3 +384,4 @@ final class AuthSessionManager {
         return hashed.map { String(format: "%02x", $0) }.joined()
     }
 }
+

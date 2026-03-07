@@ -13,6 +13,10 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Googl
 - Base URL (dev): `https://unstoppable-api-1094359674860.us-central1.run.app`
 - Database: Firestore (Native mode, `us-central1`)
 
+## TODO
+
+- Publish the API at `https://api.unstoppable.app`
+
 ## Current Auth Status (Apple/Google + Firebase)
 
 - App supports `Continue with Apple` and `Continue with Google` from `Unstoppable/WelcomeView.swift`.
@@ -31,10 +35,19 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Googl
 
 - RevenueCat SDK is linked via SPM (`https://github.com/RevenueCat/purchases-ios`) and initialized at app launch in `Unstoppable/UnstoppableApp.swift`.
 - Runtime payments orchestration is centralized in `Unstoppable/Payments/RevenueCatManager.swift`.
-- RevenueCat API key is loaded from local xcconfig (not committed):
-  - Base config: `Unstoppable/Config/RevenueCat.xcconfig`
-  - Local override (gitignored): `Unstoppable/Config/Secrets.local.xcconfig`
-  - Example template: `Unstoppable/Config/Secrets.local.xcconfig.example`
+- RevenueCat API key is split by build configuration through local xcconfig files:
+  - Debug base config: `Unstoppable/Config/RevenueCat.Debug.xcconfig`
+  - Release base config: `Unstoppable/Config/RevenueCat.Release.xcconfig`
+  - Debug local override (gitignored): `Unstoppable/Config/Secrets.debug.local.xcconfig`
+  - Release local override (gitignored): `Unstoppable/Config/Secrets.release.local.xcconfig`
+  - Debug example: `Unstoppable/Config/Secrets.debug.local.xcconfig.example`
+  - Release example: `Unstoppable/Config/Secrets.release.local.xcconfig.example`
+- RevenueCat config behavior:
+  - Debug should use the RevenueCat test public SDK key (`test_...`) so local development and StoreKit testing can run safely.
+  - Release should use the RevenueCat Apple production public SDK key (`appl_...`) for TestFlight and App Store builds.
+  - `RevenueCat.Debug.xcconfig` includes `Secrets.debug.local.xcconfig`.
+  - `RevenueCat.Release.xcconfig` includes `Secrets.release.local.xcconfig`.
+  - `REVENUECAT_IOS_API_KEY` is injected into `Info.plist` from the active build configuration at build time.
 - Auth identity is mapped to RevenueCat user identity:
   - On restore/sign-in: `Purchases.logIn(firebaseUID)`
   - On sign-out: `Purchases.logOut()`
@@ -49,7 +62,7 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Googl
 - Optional Settings test entry for paywall:
   - feature flag key: `REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON`
   - default: `NO`
-  - set to `YES` in `Unstoppable/Config/Secrets.local.xcconfig` to show `Open Paywall (Test)` button in Settings.
+  - set to `YES` in `Unstoppable/Config/Secrets.debug.local.xcconfig` to show `Open Paywall (Test)` button in Settings during Debug builds.
 - Paywall selection still posts `paymentOption` through `POST /v1/user/profile`, and backend now writes it canonically to `users/{uid}/payments/subscription.paymentOption` while mirroring profile for onboarding compatibility.
 - RevenueCat customer-info updates can sync subscription snapshot data to backend via `POST /v1/payments/subscription/snapshot` when `REVENUECAT_ENABLE_BACKEND_SYNC=YES` (default `NO` keeps payments app-side only).
 
@@ -117,7 +130,7 @@ Build-time config keys (in project build settings / Info.plist injection):
 
 Current defaults:
 - Debug: supports dev auth (`X-User-Id`, default `dev-user-001`) and switches to bearer token auth after Apple/Google sign-in.
-- Release: points to `https://api.unstoppable.app` with dev auth disabled.
+- Release: points to `https://unstoppable-api-1094359674860.us-central1.run.app` with dev auth disabled.
 
 ## Data Model and Sync Behavior
 

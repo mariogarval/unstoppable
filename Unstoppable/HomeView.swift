@@ -172,6 +172,9 @@ private struct HomeTab: View {
     @State private var showingEditTime = false
     @State private var showingTemplates = false
     @State private var showingTimer = false
+    @State private var didHydrateRoutine = false
+    @State private var isHydratingRoutine = true
+    @State private var loadedPendingTasks = false
     let streakManager: StreakManager
     @Bindable var settings: AppSettings
     let onTasksCountChange: (Int) -> Void
@@ -190,6 +193,18 @@ private struct HomeTab: View {
         return Double(completedCount) / Double(tasks.count)
     }
 
+    private func loadPendingTasksIfNeeded() -> Bool {
+        guard let data = UserDefaults.standard.data(forKey: "pendingRoutineTasks"),
+              let pendingTasks = try? JSONDecoder().decode([PendingTask].self, from: data),
+              !pendingTasks.isEmpty else { return false }
+        withAnimation(.easeInOut(duration: 0.3)) {
+            tasks = pendingTasks.map { RoutineTask(title: $0.title, icon: $0.icon, duration: $0.duration) }
+            onTasksCountChange(tasks.count)
+        }
+        UserDefaults.standard.removeObject(forKey: "pendingRoutineTasks")
+        return true
+    }
+
     private func applyTemplate(_ templateTasks: [TemplateTask]) {
         withAnimation(.easeInOut(duration: 0.3)) {
             tasks = templateTasks.map {
@@ -201,6 +216,8 @@ private struct HomeTab: View {
     }
 
     private func syncRoutineSnapshot() {
+        guard !isHydratingRoutine else { return }
+
         let request = RoutineUpsertRequest(
             routineTime: Self.routineTimeFormatter.string(from: settings.routineTime),
             tasks: tasks.map {
@@ -223,6 +240,75 @@ private struct HomeTab: View {
 #endif
             }
         }
+    }
+
+    @MainActor
+    private func hydrateRoutineFromBootstrapIfNeeded() async {
+        guard !didHydrateRoutine else { return }
+        didHydrateRoutine = true
+        defer { isHydratingRoutine = false }
+
+        // If onboarding just created local pending tasks, keep those and push once.
+        if loadedPendingTasks {
+            syncRoutineSnapshot()
+            return
+        }
+
+        do {
+            let bootstrap = try await syncService.fetchBootstrap()
+
+            if let routineTimeString = routineString("routineTime", from: bootstrap.routine),
+               let parsedTime = Self.parseRoutineTime(routineTimeString) {
+                settings.routineTime = parsedTime
+            }
+
+            let remoteTasks = routineTasks(from: bootstrap.routine)
+            if !remoteTasks.isEmpty {
+                tasks = remoteTasks
+                onTasksCountChange(tasks.count)
+            }
+        } catch {
+#if DEBUG
+            print("HomeTab hydrateRoutineFromBootstrap failed: \(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private func routineString(_ key: String, from routine: [String: JSONValue]) -> String? {
+        guard let value = routine[key] else { return nil }
+        if case .string(let stringValue) = value {
+            return stringValue
+        }
+        return nil
+    }
+
+    private func routineTasks(from routine: [String: JSONValue]) -> [RoutineTask] {
+        guard let value = routine["tasks"], case .array(let taskValues) = value else { return [] }
+
+        return taskValues.compactMap { taskValue in
+            guard case .object(let taskObject) = taskValue else { return nil }
+            guard case .string(let title)? = taskObject["title"] else { return nil }
+            guard case .string(let icon)? = taskObject["icon"] else { return nil }
+
+            let duration: Int = {
+                if case .int(let value)? = taskObject["duration"] { return value }
+                if case .double(let value)? = taskObject["duration"] { return Int(value) }
+                return 5
+            }()
+
+            let isCompleted: Bool = {
+                if case .bool(let value)? = taskObject["isCompleted"] { return value }
+                return false
+            }()
+
+            return RoutineTask(title: title, icon: icon, duration: duration, isCompleted: isCompleted)
+        }
+    }
+
+    private static func parseRoutineTime(_ value: String) -> Date? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return routineTimeFormatter.date(from: trimmed)
     }
 
     private static let routineTimeFormatter: DateFormatter = {
@@ -400,10 +486,14 @@ private struct HomeTab: View {
             syncRoutineSnapshot()
         }
         .onAppear {
+            loadedPendingTasks = loadPendingTasksIfNeeded()
             for i in tasks.indices {
                 tasks[i].isCompleted = streakManager.isCompleted(taskID: tasks[i].id)
             }
             onTasksCountChange(tasks.count)
+        }
+        .task {
+            await hydrateRoutineFromBootstrapIfNeeded()
         }
     }
 }
@@ -523,6 +613,14 @@ private struct RoutineHeader: View {
     }
 }
 
+// MARK: - Pending Task (written by RoutineCreationView, read by HomeTab)
+
+struct PendingTask: Codable {
+    let title: String
+    let icon: String
+    let duration: Int
+}
+
 // MARK: - Task Model
 
 struct RoutineTask: Identifiable {
@@ -638,7 +736,7 @@ private struct AddTaskSheet: View {
 
     private let availableIcons = [
         "bed.double.fill", "drop.fill", "brain.head.profile.fill", "iphone.slash", "fork.knife",
-        "sunrise.fill", "book.fill", "figure.walk", "bolt.heart", "leaf.fill"
+        "sun.max.fill", "book.fill", "figure.walk", "bolt.fill", "leaf.fill"
     ]
 
     private let durations = [1, 2, 5, 10, 15, 20, 30, 45, 60]
@@ -659,7 +757,7 @@ private struct AddTaskSheet: View {
                 Section(header: Text("Icon")) {
                     // Selected icon preview
                     VStack(spacing: 8) {
-                        Image(systemName: icon)
+                        Image(systemName: normalizedIconName(icon))
                             .font(.system(size: 36))
                             .foregroundStyle(.orange)
                             .frame(width: 72, height: 72)
@@ -672,20 +770,23 @@ private struct AddTaskSheet: View {
                     // Icon grid
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
                         ForEach(availableIcons, id: \.self) { name in
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.15)) {
-                                    icon = name
+                            Image(systemName: name)
+                                .font(.title3)
+                                .foregroundStyle(icon == name ? .white : .primary)
+                                .frame(width: 44, height: 44)
+                                .background(icon == name ? Color.orange : Color(.systemGray5))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .contentShape(RoundedRectangle(cornerRadius: 10))
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.15)) {
+                                        icon = name
+                                    }
                                 }
-                            } label: {
-                                Image(systemName: name)
-                                    .font(.title3)
-                                    .foregroundStyle(icon == name ? .white : .primary)
-                                    .frame(width: 44, height: 44)
-                                    .background(icon == name ? Color.orange : Color(.systemGray5))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .accessibilityElement()
+                                .accessibilityLabel(Text(name))
+                                .accessibilityAddTraits(.isButton)
                             }
                         }
-                    }
                     .padding(.vertical, 4)
                 }
 
@@ -710,7 +811,7 @@ private struct AddTaskSheet: View {
                         if taskCount >= 5 && !isPremium {
                             showPaywall = true
                         } else {
-                            onAdd(title, icon, duration)
+                            onAdd(title, normalizedIconName(icon), duration)
                             dismiss()
                         }
                     }
@@ -723,6 +824,17 @@ private struct AddTaskSheet: View {
                     PaywallView()
                 }
             }
+        }
+    }
+
+    private func normalizedIconName(_ raw: String) -> String {
+        switch raw {
+        case "sunrise.fill":
+            return "sun.max.fill"
+        case "bolt.heart":
+            return "bolt.fill"
+        default:
+            return raw
         }
     }
 }
@@ -1123,11 +1235,19 @@ private struct SettingsTab: View {
     @State private var isSigningOut = false
     @State private var signOutErrorMessage: String?
     @State private var showPaywallTestSheet = false
+    @State private var showResetLocalProfileConfirmation = false
     private let syncService = UserDataSyncService.shared
 
     private var isPaywallTestButtonEnabled: Bool {
         Self.infoBool(
             forKey: "REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON",
+            defaultValue: false
+        )
+    }
+
+    private var isResetLocalProfileTestButtonEnabled: Bool {
+        Self.infoBool(
+            forKey: "SHOW_SETTINGS_RESET_LOCAL_PROFILE_TEST_BUTTON",
             defaultValue: false
         )
     }
@@ -1152,10 +1272,17 @@ private struct SettingsTab: View {
                     Toggle("Haptics", isOn: $settings.hapticsEnabled)
                 }
 
-                if isPaywallTestButtonEnabled {
+                if isPaywallTestButtonEnabled || isResetLocalProfileTestButtonEnabled {
                     Section(header: Text("Testing")) {
-                        Button("Open Paywall (Test)") {
-                            showPaywallTestSheet = true
+                        if isPaywallTestButtonEnabled {
+                            Button("Open Paywall (Test)") {
+                                showPaywallTestSheet = true
+                            }
+                        }
+                        if isResetLocalProfileTestButtonEnabled {
+                            Button("Reset Local Profile (Test)", role: .destructive) {
+                                showResetLocalProfileConfirmation = true
+                            }
                         }
                     }
                 }
@@ -1196,6 +1323,14 @@ private struct SettingsTab: View {
                     PaywallView()
                 }
             }
+            .alert("Reset Local Profile?", isPresented: $showResetLocalProfileConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    resetLocalProfileForTesting()
+                }
+            } message: {
+                Text("This clears local onboarding/profile data from UserDefaults so you can re-test initial flows.")
+            }
             .onChange(of: settings.notificationsEnabled) { _, enabled in
                 Task {
                     await syncNotifications(enabled: enabled)
@@ -1212,10 +1347,18 @@ private struct SettingsTab: View {
 
         do {
             try await AuthSessionManager.shared.signOut()
-            onSignedOut()
         } catch {
-            signOutErrorMessage = error.localizedDescription
+#if DEBUG
+            print("SettingsTab signOut failed, continuing with local sign-out route: \(error.localizedDescription)")
+#endif
         }
+
+        await syncService.enterGuestMode()
+        UserDefaults.standard.set(true, forKey: "stayOnWelcomeAfterSignOut")
+        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+        UserDefaults.standard.set(false, forKey: "hasCreatedRoutine")
+        signOutErrorMessage = nil
+        onSignedOut()
     }
 
     private static func infoBool(forKey key: String, defaultValue: Bool) -> Bool {
@@ -1240,6 +1383,18 @@ private struct SettingsTab: View {
             }
         }
         return defaultValue
+    }
+
+    private func resetLocalProfileForTesting() {
+        let keysToRemove = [
+            "hasCompletedOnboarding",
+            "hasCreatedRoutine",
+            "pendingRoutineTasks",
+            "stayOnWelcomeAfterSignOut",
+            "guest.sync.draft.state.v1"
+        ]
+
+        keysToRemove.forEach { UserDefaults.standard.removeObject(forKey: $0) }
     }
 
     private func syncNotifications(enabled: Bool) async {

@@ -37,6 +37,8 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>REVENUECAT_ENABLE_BACKEND_SYNC</key>
@@ -45,6 +47,8 @@
 	<string>$(REVENUECAT_IOS_API_KEY)</string>
 	<key>REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON</key>
 	<string>$(REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON)</string>
+	<key>SHOW_SETTINGS_RESET_LOCAL_PROFILE_TEST_BUTTON</key>
+	<string>$(SHOW_SETTINGS_RESET_LOCAL_PROFILE_TEST_BUTTON)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2B0135E12F3D3F1C007ED162 /* OnboardingUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */; };
+		2BF67EBE2F4D0D63008E4042 /* RoutineCreationView 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BF67EBD2F4D0D63008E4042 /* RoutineCreationView 2.swift */; };
 		A71B2E012A0B1C0000F1A2B3 /* UnstoppableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */; };
 		A71B2E032A0B1C0000F1A2B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E022A0B1C0000F1A2B3 /* ContentView.swift */; };
 		A71B2E052A0B1C0100F1A2B3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A71B2E042A0B1C0100F1A2B3 /* Assets.xcassets */; };
@@ -41,6 +42,7 @@
 
 /* Begin PBXFileReference section */
 		2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingUI.swift; sourceTree = "<group>"; };
+		2BF67EBD2F4D0D63008E4042 /* RoutineCreationView 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RoutineCreationView 2.swift"; sourceTree = "<group>"; };
 		8D9E7C7F2F49630800D1C986 /* Unstoppable.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Unstoppable.entitlements; sourceTree = "<group>"; };
 		A71B2DFD2A0B1C0000F1A2B3 /* Unstoppable.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Unstoppable.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnstoppableApp.swift; sourceTree = "<group>"; };
@@ -68,8 +70,10 @@
 		C0A200031111111111111111 /* AuthSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionManager.swift; sourceTree = "<group>"; };
 		C0A200041111111111111111 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		C0A200051111111111111111 /* RevenueCatManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatManager.swift; sourceTree = "<group>"; };
-		C0A200061111111111111111 /* RevenueCat.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = RevenueCat.xcconfig; sourceTree = "<group>"; };
-		C0A200071111111111111111 /* Secrets.local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.local.xcconfig.example; sourceTree = "<group>"; };
+		C0A200081111111111111111 /* RevenueCat.Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = RevenueCat.Debug.xcconfig; sourceTree = "<group>"; };
+		C0A200091111111111111111 /* RevenueCat.Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = RevenueCat.Release.xcconfig; sourceTree = "<group>"; };
+		C0A2000A1111111111111111 /* Secrets.debug.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.debug.local.xcconfig; sourceTree = "<group>"; };
+		C0A2000B1111111111111111 /* Secrets.release.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.release.local.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -141,6 +145,7 @@
 				A71B2E2F2A0B1C1200F1A2B3 /* StreakManager.swift */,
 				A71B2E042A0B1C0100F1A2B3 /* Assets.xcassets */,
 				C0A200041111111111111111 /* GoogleService-Info.plist */,
+				2BF67EBD2F4D0D63008E4042 /* RoutineCreationView 2.swift */,
 			);
 			path = Unstoppable;
 			sourceTree = "<group>";
@@ -181,8 +186,10 @@
 		C0A300041111111111111111 /* Config */ = {
 			isa = PBXGroup;
 			children = (
-				C0A200061111111111111111 /* RevenueCat.xcconfig */,
-				C0A200071111111111111111 /* Secrets.local.xcconfig.example */,
+				C0A200081111111111111111 /* RevenueCat.Debug.xcconfig */,
+				C0A200091111111111111111 /* RevenueCat.Release.xcconfig */,
+				C0A2000A1111111111111111 /* Secrets.debug.local.xcconfig */,
+				C0A2000B1111111111111111 /* Secrets.release.local.xcconfig */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -279,6 +286,7 @@
 				A71B2E162A0B1C0500F1A2B3 /* RoutinePreviewView.swift in Sources */,
 				A71B2E182A0B1C0600F1A2B3 /* TimerDemoView.swift in Sources */,
 				A71B2E1A2A0B1C0700F1A2B3 /* SocialProofView.swift in Sources */,
+				2BF67EBE2F4D0D63008E4042 /* RoutineCreationView 2.swift in Sources */,
 				A71B2E1C2A0B1C0800F1A2B3 /* GoalSelectionView.swift in Sources */,
 				A71B2E1E2A0B1C0900F1A2B3 /* AgeGroupView.swift in Sources */,
 				A71B2E202A0B1C0A00F1A2B3 /* GenderSelectionView.swift in Sources */,
@@ -421,16 +429,16 @@
 		};
 		A71B2E0C2A0B1C0100F1A2B3 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C0A200061111111111111111 /* RevenueCat.xcconfig */;
+			baseConfigurationReference = C0A200081111111111111111 /* RevenueCat.Debug.xcconfig */;
 			buildSettings = {
 				API_BASE_URL = "https://unstoppable-api-1094359674860.us-central1.run.app";
 				API_DEV_USER_ID = "dev-user-001";
-					API_USE_DEV_AUTH = NO;
+				API_USE_DEV_AUTH = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Unstoppable/Unstoppable.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";
 				DEVELOPMENT_TEAM = J8R7U58G33;
 				ENABLE_PREVIEWS = YES;
@@ -451,16 +459,16 @@
 		};
 		A71B2E0D2A0B1C0100F1A2B3 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C0A200061111111111111111 /* RevenueCat.xcconfig */;
+			baseConfigurationReference = C0A200091111111111111111 /* RevenueCat.Release.xcconfig */;
 			buildSettings = {
-				API_BASE_URL = "https://api.unstoppable.app";
+				API_BASE_URL = "https://unstoppable-api-1094359674860.us-central1.run.app";
 				API_DEV_USER_ID = "";
 				API_USE_DEV_AUTH = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Unstoppable/Unstoppable.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";
 				DEVELOPMENT_TEAM = J8R7U58G33;
 				ENABLE_PREVIEWS = YES;

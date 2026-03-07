@@ -7,7 +7,7 @@ struct BeforeAfterView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 6, total: 6)
+            ThemedProgressBar.light(step: OnboardingProgress.beforeAfter, total: OnboardingProgress.totalSteps)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 

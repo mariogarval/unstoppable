@@ -17,12 +17,15 @@ enum RevenueCatPurchaseResult {
 
 enum RevenueCatManagerError: LocalizedError {
     case missingAPIKey
+    case invalidReleaseAPIKey
     case packageUnavailable
 
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
             return "RevenueCat API key is missing."
+        case .invalidReleaseAPIKey:
+            return "RevenueCat is configured with a test API key in a Release build. Use the live public SDK key before shipping TestFlight/App Store builds."
         case .packageUnavailable:
             return "Selected package is unavailable."
         }
@@ -42,6 +45,7 @@ final class RevenueCatManager: NSObject, ObservableObject {
     private let entitlementID = "premium"
     private let apiKeyInfoKey = "REVENUECAT_IOS_API_KEY"
     private let backendSyncEnabledInfoKey = "REVENUECAT_ENABLE_BACKEND_SYNC"
+    private let syncService = UserDataSyncService.shared
 
     private var packageByID: [String: Package] = [:]
     private lazy var isBackendSyncEnabled = configuredBackendSyncEnabled()
@@ -58,6 +62,14 @@ final class RevenueCatManager: NSObject, ObservableObject {
             isConfigured = false
             return
         }
+
+#if !DEBUG
+        guard !apiKey.lowercased().hasPrefix("test_") else {
+            lastErrorMessage = RevenueCatManagerError.invalidReleaseAPIKey.localizedDescription
+            isConfigured = false
+            return
+        }
+#endif
 
 #if DEBUG
         Purchases.logLevel = .debug
@@ -342,11 +354,7 @@ final class RevenueCatManager: NSObject, ObservableObject {
         )
 
         do {
-            let _: APIAckResponse = try await APIClient.shared.post(
-                "/v1/payments/subscription/snapshot",
-                body: request,
-                as: APIAckResponse.self
-            )
+            _ = try await syncService.syncSubscriptionSnapshot(request)
         } catch {
 #if DEBUG
             print("RevenueCat subscription snapshot sync failed: \(error.localizedDescription)")

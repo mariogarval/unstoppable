@@ -3,16 +3,23 @@ import SwiftUI
 struct RoutinePreviewView: View {
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 1, total: 6)
+            ThemedProgressBar.light(step: OnboardingProgress.routinePreview, total: OnboardingProgress.totalSteps)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 
             Spacer()
 
-            Text("Build your\nwar plan")
-                .font(.largeTitle.bold())
-                .multilineTextAlignment(.center)
-                .padding(.bottom, 32)
+            VStack(spacing: 10) {
+                Text("Build your\nwar plan")
+                    .font(.largeTitle.bold())
+                    .multilineTextAlignment(.center)
+
+                Text("5AM Club \u{2022} Atomic Habits \u{2022} Deep Work")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.bottom, 32)
 
             RoutineMockup()
                 .padding(.horizontal, 40)

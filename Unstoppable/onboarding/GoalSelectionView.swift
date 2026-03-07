@@ -2,24 +2,30 @@ import SwiftUI
 
 struct GoalSelectionView: View {
     @State private var selected: Set<String> = []
+    @State private var navigateNext = false
+    @State private var isSavingProfile = false
+    @State private var syncErrorMessage: String?
+    @State private var didHydrateSelections = false
+    @State private var hasUserInteracted = false
 
     private let goals: [(title: String, emoji: String)] = [
-        ("Stop planning, start doing", "\u{1F3C3}"),
-        ("Stay on top of your schedule", "\u{1F4C5}"),
-        ("Master your deep focus", "\u{1F3AF}"),
-        ("Track every task you have", "\u{2705}"),
-        ("Take a moment for yourself", "\u{2615}"),
-        ("Own your daily energy", "\u{2728}"),
+        ("Join the 5AM Club", "\u{23F0}"),
+        ("Build atomic habits", "\u{1F504}"),
+        ("Master deep work", "\u{1F3AF}"),
+        ("Change my life", "\u{1F525}"),
+        ("Own my mornings", "\u{2600}\u{FE0F}"),
+        ("Discipline over motivation", "\u{1F4AA}"),
     ]
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12),
     ]
+    private let syncService = UserDataSyncService.shared
 
     var body: some View {
         VStack(spacing: 0) {
-            ThemedProgressBar.light(step: 4, total: 6)
+            ThemedProgressBar.light(step: OnboardingProgress.goals, total: OnboardingProgress.totalSteps)
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
 
@@ -41,6 +47,7 @@ struct GoalSelectionView: View {
                         emoji: goal.emoji,
                         isSelected: selected.contains(goal.title)
                     ) {
+                        hasUserInteracted = true
                         withAnimation(.easeInOut(duration: 0.2)) {
                             if selected.contains(goal.title) {
                                 selected.remove(goal.title)
@@ -57,23 +64,41 @@ struct GoalSelectionView: View {
             Spacer()
 
             VStack(spacing: 12) {
-                NavigationLink {
-                    ContentView()
+                Button {
+                    Task {
+                        await continueToNotifications(saveSelection: true)
+                    }
                 } label: {
-                    OnboardingPrimaryButton("Next", background: selected.isEmpty ? Color(.systemGray4) : .black, foreground: .white) { }
+                    Text(isSavingProfile ? "Saving..." : "Next")
+                        .font(.body.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .padding(.vertical, 4)
+                        .foregroundStyle(.white)
+                        .background(selected.isEmpty ? Color(.systemGray4) : Color.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
+                .disabled(selected.isEmpty || isSavingProfile)
                 .accessibilityHint("Proceeds after selecting your goals.")
-                .disabled(selected.isEmpty)
 
                 Button {
-                    // Skip action
+                    Task {
+                        await continueToNotifications(saveSelection: false)
+                    }
                 } label: {
                     Text("Skip")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(minHeight: 44)
                 }
+                .disabled(isSavingProfile)
                 .accessibilityHint("Skips goal selection.")
+
+                if let syncErrorMessage {
+                    Text(syncErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
@@ -84,6 +109,68 @@ struct GoalSelectionView: View {
             ToolbarItem(placement: .navigationBarLeading) {
                 OnboardingBackButton(color: .primary)
             }
+        }
+        .navigationDestination(isPresented: $navigateNext) {
+            NotificationPermissionView()
+        }
+        .task {
+            await hydrateSelectionsIfNeeded()
+        }
+    }
+
+    @MainActor
+    private func continueToNotifications(saveSelection: Bool) async {
+        isSavingProfile = true
+        syncErrorMessage = nil
+        defer { isSavingProfile = false }
+
+        let orderedSelections = goals.map(\.title).filter { selected.contains($0) }
+        let selectionsToPersist = saveSelection ? orderedSelections : []
+
+        do {
+            _ = try await syncService.syncUserProfile(
+                UserProfileUpsertRequest(idealDailyLifeSelections: selectionsToPersist)
+            )
+        } catch {
+            syncErrorMessage = "Couldn't save this preference. Continuing anyway."
+#if DEBUG
+            print("syncUserProfile(idealDailyLifeSelections) failed (non-blocking): \(error.localizedDescription)")
+#endif
+        }
+
+        navigateNext = true
+    }
+
+    @MainActor
+    private func hydrateSelectionsIfNeeded() async {
+        guard !didHydrateSelections else { return }
+        didHydrateSelections = true
+
+        do {
+            let bootstrap = try await syncService.fetchBootstrap()
+            let savedSelections = profileStringArray("idealDailyLifeSelections", from: bootstrap.profile)
+            guard !savedSelections.isEmpty else { return }
+            guard !hasUserInteracted else { return }
+
+            let allowedGoals = Set(goals.map(\.title))
+            let hydratedSelections = savedSelections.filter { allowedGoals.contains($0) }
+            selected = Set(hydratedSelections)
+#if DEBUG
+            print("GoalSelectionView hydrated idealDailyLifeSelections raw=\(savedSelections) filtered=\(hydratedSelections)")
+#endif
+        } catch {
+#if DEBUG
+            print("GoalSelectionView hydrateSelectionsIfNeeded failed: \(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private func profileStringArray(_ key: String, from profile: [String: JSONValue]) -> [String] {
+        guard let value = profile[key] else { return [] }
+        guard case .array(let values) = value else { return [] }
+        return values.compactMap {
+            guard case .string(let str) = $0 else { return nil }
+            return str
         }
     }
 }

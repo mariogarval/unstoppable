@@ -12,7 +12,9 @@ struct WelcomeView: View {
     @State private var isGoogleSigningIn = false
     @State private var authErrorMessage: String?
     @State private var navigateNickname = false
+    @State private var navigateDemo = false
     @State private var navigatePaywall = false
+    @State private var navigateRoutineCreation = false
     @State private var navigateHome = false
     @State private var didBootstrap = false
     @State private var didHandleRestoreRouting = false
@@ -50,7 +52,7 @@ struct WelcomeView: View {
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
 
-                        Text("You know what to do. This app makes sure you actually do it.")
+                        Text("For the 5AM Club. For atomic habit builders.\nFor anyone done with excuses.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -120,8 +122,10 @@ struct WelcomeView: View {
                         .animation(.easeOut(duration: 0.45).delay(0.06), value: googleAppeared)
 
                         // Continue without signup — prominent tint outline
-                        NavigationLink {
-                            NicknameView()
+                        Button {
+                            Task {
+                                await continueAsGuest()
+                            }
                         } label: {
                             Text("Skip signup. Just start.")
                                 .font(.body.weight(.semibold))
@@ -136,6 +140,7 @@ struct WelcomeView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.9)
                         }
+                        .buttonStyle(.plain)
                         .accessibilityLabel("Continue without signup")
                         .opacity(guestAppeared ? 1 : 0)
                         .offset(y: guestAppeared ? 0 : 8)
@@ -194,9 +199,15 @@ struct WelcomeView: View {
                 .task {
                     if !didHandleRestoreRouting {
                         didHandleRestoreRouting = true
+                        if UserDefaults.standard.bool(forKey: "stayOnWelcomeAfterSignOut") {
+                            UserDefaults.standard.set(false, forKey: "stayOnWelcomeAfterSignOut")
+                            return
+                        }
                         let restored = await authSession.restoreSessionIfPossible()
                         let bootstrap = await bootstrapIfNeeded()
                         if restored, let bootstrap {
+                            routeAuthenticatedUser(using: bootstrap)
+                        } else if let bootstrap, shouldResumeGuestFlow(using: bootstrap) {
                             routeAuthenticatedUser(using: bootstrap)
                         } else if restored {
                             authErrorMessage = "Signed in, but failed to load your account. Please try again."
@@ -208,11 +219,17 @@ struct WelcomeView: View {
                 .dynamicTypeSize(.medium ... .accessibility5)
                 .navigationTitle("")
                 .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(isPresented: $navigateDemo) {
+                    RoutinePreviewView()
+                }
                 .navigationDestination(isPresented: $navigateNickname) {
                     NicknameView()
                 }
                 .navigationDestination(isPresented: $navigatePaywall) {
                     PaywallView()
+                }
+                .navigationDestination(isPresented: $navigateRoutineCreation) {
+                    RoutineCreationView()
                 }
                 .navigationDestination(isPresented: $navigateHome) {
                     HomeView()
@@ -289,11 +306,12 @@ struct WelcomeView: View {
     @MainActor
     private func routeAuthenticatedUser(using bootstrap: BootstrapResponse) {
         navigateHome = false
-        navigateNickname = false
+        navigateDemo = false
         navigatePaywall = false
+        navigateRoutineCreation = false
 
         if !isProfileFlowComplete(bootstrap) {
-            navigateNickname = true
+            navigateDemo = true
             return
         }
 
@@ -302,6 +320,13 @@ struct WelcomeView: View {
             return
         }
 
+        if !hasRoutineConfigured(bootstrap) {
+            navigateRoutineCreation = true
+            return
+        }
+
+        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        UserDefaults.standard.set(true, forKey: "hasCreatedRoutine")
         navigateHome = true
     }
 
@@ -332,6 +357,7 @@ struct WelcomeView: View {
         }
 
         return hasSubscriptionString("paymentOption", from: bootstrap)
+            || hasProfileString("paymentOption", from: bootstrap)
     }
 
     private func hasProfileString(_ key: String, from bootstrap: BootstrapResponse) -> Bool {
@@ -351,6 +377,30 @@ struct WelcomeView: View {
         guard let value = subscription[key] else { return false }
         guard case .string(let str) = value else { return false }
         return !str.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func shouldResumeGuestFlow(using bootstrap: BootstrapResponse) -> Bool {
+        if hasProfileString("nickname", from: bootstrap) { return true }
+        if !bootstrap.routine.isEmpty { return true }
+        if hasSelectedPaymentOption(bootstrap) { return true }
+        return false
+    }
+
+    private func hasRoutineConfigured(_ bootstrap: BootstrapResponse) -> Bool {
+        guard let tasksValue = bootstrap.routine["tasks"] else { return false }
+        guard case .array(let taskValues) = tasksValue else { return false }
+        return !taskValues.isEmpty
+    }
+
+    @MainActor
+    private func continueAsGuest() async {
+        authErrorMessage = nil
+        await syncService.enterGuestMode()
+        if let bootstrap = await bootstrapIfNeeded(force: true) {
+            routeAuthenticatedUser(using: bootstrap)
+        } else {
+            navigateDemo = true
+        }
     }
 }
 
