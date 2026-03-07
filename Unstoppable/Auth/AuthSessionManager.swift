@@ -74,7 +74,6 @@ final class AuthSessionManager {
         StreakManager.shared.refreshStorageScopeIfNeeded()
         await RevenueCatManager.shared.logIn(appUserID: currentUser.uid, email: currentUser.email)
         await syncService.setAuthMode(makeBearerMode())
-        await syncService.flushPendingGuestDataIfNeeded()
         return true
     }
 
@@ -225,7 +224,6 @@ final class AuthSessionManager {
         StreakManager.shared.refreshStorageScopeIfNeeded()
         await RevenueCatManager.shared.logIn(appUserID: user.uid, email: user.email)
         await syncService.setAuthMode(makeBearerMode())
-        await syncService.flushPendingGuestDataIfNeeded()
     }
 
     /// `fetchSignInMethods` is deprecated and unreliable when Email Enumeration Protection is enabled.

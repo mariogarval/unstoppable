@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct PaywallView: View {
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var selectedPlan: Plan = .annual
     @State private var selectedPackageID: String?
     @State private var navigateRoutineCreation = false
@@ -378,7 +377,7 @@ struct PaywallView: View {
             _ = try await syncService.syncUserProfile(
                 UserProfileUpsertRequest(paymentOption: option)
             )
-            hasCompletedOnboarding = true
+            StreakManager.setUserScopedBool(true, forKey: "hasCompletedOnboarding")
             navigateRoutineCreation = true
         } catch {
             purchaseErrorMessage = "Could not save your selection. Please try again."

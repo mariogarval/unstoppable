@@ -1,9 +1,31 @@
 # Agent Session Index
 
-**Last Updated**: 2026-02-22
+**Last Updated**: 2026-03-07
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 12 markdown documents
+**Files**: 13 markdown documents
+
+---
+
+## March 7, 2026 - Routine Stats User Scoping
+
+### `ROUTINE_STATS_USER_SCOPING_20260307.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-03-07 | **Status**: Complete
+**Branch**: `agentic-dev-v1`
+
+**Scoped local routine stats and pending routine draft storage to the active user, then fixed the local testing reset flow to clear the new scoped keys.**
+
+**Problem Solved**: Prevented one user's streak/routine-done stats from appearing for another user on the same device and removed stale local stats after in-app reset testing.
+
+**Key Results**:
+- Scoped `StreakManager` persistence and in-memory state to the active Firebase user or `guest-local`.
+- Refreshed streak storage scope on auth restore, sign-in, and sign-out.
+- Scoped `pendingRoutineTasks` storage and added full local testing cleanup for streak/draft keys.
+- Revalidated with `xcodebuild` and `./scripts/run_ios_sim.sh "iPhone 17 Pro"`.
+
+**Next Steps**: Optionally user-scope local onboarding flags (`hasCompletedOnboarding`, `hasCreatedRoutine`) to fully isolate device-local flow state across accounts.
+
+**Related**: `PROFILE_COMPLETION_ROUTING_20260221.md` (auth/bootstrap routing behavior)
 
 ---
 
@@ -259,6 +281,7 @@
 
 | Topic | Location |
 |-------|----------|
+| Routine stats user scoping | `ROUTINE_STATS_USER_SCOPING_20260307.md` |
 | Home settings bootstrap sync (routine time + notifications) | `HOME_SETTINGS_BOOTSTRAP_SYNC_20260222.md` |
 | Stable API endpoint revert | `API_BASE_URL_STABLE_ENDPOINT_20260221.md` |
 | Remove fake payment flow | `REMOVE_FAKE_PAYMENT_FLOW_20260222.md` |

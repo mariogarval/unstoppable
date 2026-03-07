@@ -1,4 +1,5 @@
 import SwiftUI
+import CryptoKit
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -23,6 +24,8 @@ struct HomeView: View {
     @State private var totalTasks: Int = 5
     @State private var showStreakBroken = false
     @State private var showMilestone = false
+    @State private var hasEditedNotificationsSetting = false
+    @State private var hasEditedRoutineTimeSetting = false
 
     private let streakManager = StreakManager.shared
     private let syncService = UserDataSyncService.shared
@@ -51,7 +54,11 @@ struct HomeView: View {
                 }
                 .tag(1)
 
-            SettingsTab(settings: settings) {
+            SettingsTab(
+                settings: settings,
+                onNotificationsEdited: { hasEditedNotificationsSetting = true },
+                onRoutineTimeEdited: { hasEditedRoutineTimeSetting = true }
+            ) {
                 routeToWelcomeAfterSignOut()
             }
                 .tabItem {
@@ -111,10 +118,12 @@ struct HomeView: View {
     private func loadSettingsFromBootstrap() async {
         do {
             let bootstrap = try await syncService.fetchBootstrap()
-            if let notificationsEnabled = profileBool("notificationsEnabled", from: bootstrap.profile) {
+            if !hasEditedNotificationsSetting,
+               let notificationsEnabled = profileBool("notificationsEnabled", from: bootstrap.profile) {
                 settings.notificationsEnabled = notificationsEnabled
             }
-            if let routineTimeString = routineString("routineTime", from: bootstrap.routine),
+            if !hasEditedRoutineTimeSetting,
+               let routineTimeString = routineString("routineTime", from: bootstrap.routine),
                let parsedTime = Self.parseRoutineTime(routineTimeString) {
                 settings.routineTime = parsedTime
             }
@@ -160,13 +169,7 @@ struct HomeView: View {
 // MARK: - Home Tab
 
 private struct HomeTab: View {
-    @State private var tasks: [RoutineTask] = [
-        RoutineTask(title: "Make bed", icon: "bed.double.fill", duration: 2),
-        RoutineTask(title: "Drink water", icon: "drop.fill", duration: 1),
-        RoutineTask(title: "5 min meditation", icon: "brain.head.profile.fill", duration: 5),
-        RoutineTask(title: "No phone 30 min", icon: "iphone.slash", duration: 30),
-        RoutineTask(title: "Healthy breakfast", icon: "fork.knife", duration: 15)
-    ]
+    @State private var tasks: [RoutineTask] = []
 
     @State private var showingAddTask = false
     @State private var showingEditTime = false
@@ -199,7 +202,9 @@ private struct HomeTab: View {
               let pendingTasks = try? JSONDecoder().decode([PendingTask].self, from: data),
               !pendingTasks.isEmpty else { return false }
         withAnimation(.easeInOut(duration: 0.3)) {
-            tasks = pendingTasks.map { RoutineTask(title: $0.title, icon: $0.icon, duration: $0.duration) }
+            tasks = pendingTasks.map {
+                RoutineTask(id: $0.id, title: $0.title, icon: $0.icon, duration: $0.duration)
+            }
             onTasksCountChange(tasks.count)
         }
         UserDefaults.standard.removeObject(forKey: storageKey)
@@ -266,6 +271,16 @@ private struct HomeTab: View {
             let remoteTasks = routineTasks(from: bootstrap.routine)
             if !remoteTasks.isEmpty {
                 tasks = remoteTasks
+                let completedTaskIds = progressCompletedTaskIds(from: bootstrap.progress.today)
+                streakManager.hydrateTodayCompletion(
+                    taskKeys: tasks.map(\.completionKey),
+                    completedTaskIds: completedTaskIds + tasks.filter(\.isCompleted).map(\.completionKey)
+                )
+                for i in tasks.indices {
+                    if streakManager.isCompleted(taskKey: tasks[i].completionKey) {
+                        tasks[i].isCompleted = true
+                    }
+                }
                 onTasksCountChange(tasks.count)
             }
         } catch {
@@ -286,8 +301,33 @@ private struct HomeTab: View {
     private func routineTasks(from routine: [String: JSONValue]) -> [RoutineTask] {
         guard let value = routine["tasks"], case .array(let taskValues) = value else { return [] }
 
-        return taskValues.compactMap { taskValue in
+        return taskValues.enumerated().compactMap { index, taskValue in
             guard case .object(let taskObject) = taskValue else { return nil }
+            let id: UUID = {
+                if case .string(let value)? = taskObject["id"],
+                   let uuid = UUID(uuidString: value) {
+                    return uuid
+                }
+                if case .string(let value)? = taskObject["id"] {
+                    return Self.deterministicTaskUUID(seed: "task-id:\(value)")
+                }
+                let titleSeed: String = {
+                    if case .string(let value)? = taskObject["title"] { return value }
+                    return ""
+                }()
+                let iconSeed: String = {
+                    if case .string(let value)? = taskObject["icon"] { return value }
+                    return ""
+                }()
+                let durationSeed: String = {
+                    if case .int(let value)? = taskObject["duration"] { return String(value) }
+                    if case .double(let value)? = taskObject["duration"] { return String(Int(value)) }
+                    return ""
+                }()
+                return Self.deterministicTaskUUID(
+                    seed: "task-fallback:\(index)|\(titleSeed)|\(iconSeed)|\(durationSeed)"
+                )
+            }()
             guard case .string(let title)? = taskObject["title"] else { return nil }
             guard case .string(let icon)? = taskObject["icon"] else { return nil }
 
@@ -302,7 +342,15 @@ private struct HomeTab: View {
                 return false
             }()
 
-            return RoutineTask(title: title, icon: icon, duration: duration, isCompleted: isCompleted)
+            return RoutineTask(id: id, title: title, icon: icon, duration: duration, isCompleted: isCompleted)
+        }
+    }
+
+    private func progressCompletedTaskIds(from progress: [String: JSONValue]) -> [String] {
+        guard let value = progress["completedTaskIds"], case .array(let ids) = value else { return [] }
+        return ids.compactMap {
+            guard case .string(let id) = $0 else { return nil }
+            return id
         }
     }
 
@@ -320,6 +368,18 @@ private struct HomeTab: View {
         return formatter
     }()
 
+    private static func deterministicTaskUUID(seed: String) -> UUID {
+        let digest = SHA256.hash(data: Data(seed.utf8))
+        let hex = digest.map { String(format: "%02x", $0) }.joined()
+        let p1 = String(hex.prefix(8))
+        let p2 = String(hex.dropFirst(8).prefix(4))
+        let p3 = String(hex.dropFirst(12).prefix(4))
+        let p4 = String(hex.dropFirst(16).prefix(4))
+        let p5 = String(hex.dropFirst(20).prefix(12))
+        let uuidString = "\(p1)-\(p2)-\(p3)-\(p4)-\(p5)"
+        return UUID(uuidString: uuidString) ?? UUID()
+    }
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             ScrollView {
@@ -328,7 +388,10 @@ private struct HomeTab: View {
                     StreakHeader(streak: streakManager.getStreakCount())
                         .padding(.top, 16)
 
-                    if tasks.isEmpty {
+                    if isHydratingRoutine && tasks.isEmpty {
+                        ProgressView("Loading routine...")
+                            .padding(.top, 40)
+                    } else if tasks.isEmpty {
                         // Empty state
                         EmptyRoutineView(
                             onBrowseTemplates: { showingTemplates = true },
@@ -349,9 +412,9 @@ private struct HomeTab: View {
                                             hapticsEnabled: settings.hapticsEnabled,
                                             onToggle: { completed in
                                                 if completed {
-                                                    streakManager.completeTask(taskID: task.id, totalTasks: tasks.count)
+                                                    streakManager.completeTask(taskKey: task.completionKey, totalTasks: tasks.count)
                                                 } else {
-                                                    streakManager.uncompleteTask(taskID: task.id, totalTasks: tasks.count)
+                                                    streakManager.uncompleteTask(taskKey: task.completionKey, totalTasks: tasks.count)
                                                 }
                                                 syncRoutineSnapshot()
                                             },
@@ -470,14 +533,14 @@ private struct HomeTab: View {
             RoutineTimerView(
                 tasks: tasks,
                 hapticsEnabled: settings.hapticsEnabled
-            ) { completedIDs in
+            ) { completedKeys in
                 for i in tasks.indices {
-                    if completedIDs.contains(tasks[i].id) {
+                    if completedKeys.contains(tasks[i].completionKey) {
                         tasks[i].isCompleted = true
                     }
                 }
                 streakManager.recordBatchCompletion(
-                    completedIDs: completedIDs,
+                    completedKeys: completedKeys,
                     totalTasks: tasks.count
                 )
                 syncRoutineSnapshot()
@@ -489,7 +552,7 @@ private struct HomeTab: View {
         .onAppear {
             loadedPendingTasks = loadPendingTasksIfNeeded()
             for i in tasks.indices {
-                tasks[i].isCompleted = streakManager.isCompleted(taskID: tasks[i].id)
+                tasks[i].isCompleted = streakManager.isCompleted(taskKey: tasks[i].completionKey)
             }
             onTasksCountChange(tasks.count)
         }
@@ -617,19 +680,54 @@ private struct RoutineHeader: View {
 // MARK: - Pending Task (written by RoutineCreationView, read by HomeTab)
 
 struct PendingTask: Codable {
+    let id: UUID
     let title: String
     let icon: String
     let duration: Int
+
+    init(id: UUID = UUID(), title: String, icon: String, duration: Int) {
+        self.id = id
+        self.title = title
+        self.icon = icon
+        self.duration = duration
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        title = try container.decode(String.self, forKey: .title)
+        icon = try container.decode(String.self, forKey: .icon)
+        duration = try container.decode(Int.self, forKey: .duration)
+    }
 }
 
 // MARK: - Task Model
 
 struct RoutineTask: Identifiable {
-    let id = UUID()
+    let id: UUID
     let title: String
     let icon: String
     var duration: Int = 5
     var isCompleted = false
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        icon: String,
+        duration: Int = 5,
+        isCompleted: Bool = false
+    ) {
+        self.id = id
+        self.title = title
+        self.icon = icon
+        self.duration = duration
+        self.isCompleted = isCompleted
+    }
+
+    var completionKey: String {
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return "\(normalizedTitle)|\(icon)|\(duration)"
+    }
 }
 
 // MARK: - Task Row
@@ -1232,6 +1330,8 @@ private struct InsightCard: View {
 
 private struct SettingsTab: View {
     @Bindable var settings: AppSettings
+    let onNotificationsEdited: () -> Void
+    let onRoutineTimeEdited: () -> Void
     let onSignedOut: () -> Void
     @State private var isSigningOut = false
     @State private var signOutErrorMessage: String?
@@ -1333,9 +1433,13 @@ private struct SettingsTab: View {
                 Text("This clears local onboarding/profile data from UserDefaults so you can re-test initial flows.")
             }
             .onChange(of: settings.notificationsEnabled) { _, enabled in
+                onNotificationsEdited()
                 Task {
                     await syncNotifications(enabled: enabled)
                 }
+            }
+            .onChange(of: settings.routineTime) { _, _ in
+                onRoutineTimeEdited()
             }
         }
     }
@@ -1356,8 +1460,8 @@ private struct SettingsTab: View {
 
         await syncService.enterGuestMode()
         UserDefaults.standard.set(true, forKey: "stayOnWelcomeAfterSignOut")
-        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
-        UserDefaults.standard.set(false, forKey: "hasCreatedRoutine")
+        StreakManager.setUserScopedBool(false, forKey: "hasCompletedOnboarding")
+        StreakManager.setUserScopedBool(false, forKey: "hasCreatedRoutine")
         signOutErrorMessage = nil
         onSignedOut()
     }
@@ -1387,14 +1491,10 @@ private struct SettingsTab: View {
     }
 
     private func resetLocalProfileForTesting() {
-        let keysToRemove = [
-            "hasCompletedOnboarding",
-            "hasCreatedRoutine",
-            "stayOnWelcomeAfterSignOut",
-            "guest.sync.draft.state.v1"
-        ]
-
-        keysToRemove.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        StreakManager.removeUserScopedValue(forKey: "hasCompletedOnboarding")
+        StreakManager.removeUserScopedValue(forKey: "hasCreatedRoutine")
+        UserDefaults.standard.removeObject(forKey: "stayOnWelcomeAfterSignOut")
+        UserDefaults.standard.removeObject(forKey: "guest.sync.draft.state.v1")
         StreakManager.clearLocalTestingState()
     }
 

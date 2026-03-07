@@ -325,8 +325,8 @@ struct WelcomeView: View {
             return
         }
 
-        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-        UserDefaults.standard.set(true, forKey: "hasCreatedRoutine")
+        StreakManager.setUserScopedBool(true, forKey: "hasCompletedOnboarding")
+        StreakManager.setUserScopedBool(true, forKey: "hasCreatedRoutine")
         navigateHome = true
     }
 

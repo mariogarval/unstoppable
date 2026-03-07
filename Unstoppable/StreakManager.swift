@@ -21,7 +21,7 @@ final class StreakManager {
     var milestoneMessage: String?
 
     // In-memory: today's individual task tracking
-    private var todayCompletedIDs: Set<UUID> = []
+    private var todayCompletedIDs: Set<String> = []
 
     // Persisted: daily completion records keyed by "yyyy-MM-dd"
     private var dailyRecords: [String: DayRecord] = [:]
@@ -58,27 +58,27 @@ final class StreakManager {
 
     // MARK: - Task Completion
 
-    func completeTask(taskID: UUID, totalTasks: Int) {
+    func completeTask(taskKey: String, totalTasks: Int) {
         refreshStorageScopeIfNeeded()
-        todayCompletedIDs.insert(taskID)
+        todayCompletedIDs.insert(taskKey)
         updateToday(totalTasks: totalTasks)
     }
 
-    func uncompleteTask(taskID: UUID, totalTasks: Int) {
+    func uncompleteTask(taskKey: String, totalTasks: Int) {
         refreshStorageScopeIfNeeded()
-        todayCompletedIDs.remove(taskID)
+        todayCompletedIDs.remove(taskKey)
         updateToday(totalTasks: totalTasks)
     }
 
-    func isCompleted(taskID: UUID) -> Bool {
+    func isCompleted(taskKey: String) -> Bool {
         refreshStorageScopeIfNeeded()
-        return todayCompletedIDs.contains(taskID)
+        return todayCompletedIDs.contains(taskKey)
     }
 
     /// Batch-record completions from RoutineTimerView
-    func recordBatchCompletion(completedIDs: Set<UUID>, totalTasks: Int) {
+    func recordBatchCompletion(completedKeys: Set<String>, totalTasks: Int) {
         refreshStorageScopeIfNeeded()
-        todayCompletedIDs.formUnion(completedIDs)
+        todayCompletedIDs.formUnion(completedKeys)
         updateToday(totalTasks: totalTasks)
     }
 
@@ -102,9 +102,13 @@ final class StreakManager {
             "streak.longest",
             "streak.lastQualified"
         ]
+        let guestScopedPrefixes = [
+            "\(keyPrefix).\(guestUserID).",
+            "pendingRoutineTasks.\(guestUserID)"
+        ]
 
         for key in defaults.dictionaryRepresentation().keys {
-            if key.hasPrefix("\(keyPrefix).") || key.hasPrefix("pendingRoutineTasks.") {
+            if guestScopedPrefixes.contains(where: { key.hasPrefix($0) }) {
                 defaults.removeObject(forKey: key)
             }
         }
@@ -112,6 +116,8 @@ final class StreakManager {
         legacyKeys.forEach { defaults.removeObject(forKey: $0) }
 
         let manager = shared
+        guard manager.activeStorageScope == guestUserID else { return }
+
         manager.todayCompletedIDs = []
         manager.dailyRecords = [:]
         manager.currentStreak = 0
@@ -120,7 +126,7 @@ final class StreakManager {
         manager.streakBrokenMessage = nil
         manager.milestoneMessage = nil
         manager.didHydrateFromBootstrap = false
-        manager.activeStorageScope = storageScopeUserID()
+        manager.activeStorageScope = guestUserID
     }
 
     // MARK: - Queries
@@ -213,7 +219,7 @@ final class StreakManager {
     }
 
     private func syncTodayProgress(date: String, completed: Int, total: Int) {
-        let completedTaskIds = todayCompletedIDs.map(\.uuidString).sorted()
+        let completedTaskIds = todayCompletedIDs.sorted()
         let request = DailyProgressUpsertRequest(
             date: date,
             completed: completed,
@@ -253,6 +259,14 @@ final class StreakManager {
         longestStreak = max(currentStreak, remoteLongest)
         lastQualifiedDate = remoteLastQualifiedDate
         save()
+    }
+
+    func hydrateTodayCompletion(taskKeys: [String], completedTaskIds: [String]) {
+        refreshStorageScopeIfNeeded()
+        let remoteCompleted = Set(completedTaskIds)
+        let matchingTaskKeys = Set(taskKeys.filter { remoteCompleted.contains($0) })
+        todayCompletedIDs.formUnion(remoteCompleted)
+        todayCompletedIDs.formUnion(matchingTaskKeys)
     }
 
     private func checkMilestones() {
@@ -301,6 +315,18 @@ final class StreakManager {
 
     static func userScopedDefaultsKey(_ base: String) -> String {
         "\(base).\(storageScopeUserID())"
+    }
+
+    static func userScopedBool(forKey key: String) -> Bool {
+        UserDefaults.standard.bool(forKey: userScopedDefaultsKey(key))
+    }
+
+    static func setUserScopedBool(_ value: Bool, forKey key: String) {
+        UserDefaults.standard.set(value, forKey: userScopedDefaultsKey(key))
+    }
+
+    static func removeUserScopedValue(forKey key: String) {
+        UserDefaults.standard.removeObject(forKey: userScopedDefaultsKey(key))
     }
 
     // MARK: - Date Helpers

@@ -7,9 +7,9 @@ struct UnstoppableApp: App {
         case welcome, routineCreation, home
     }
 
-    private static let launchRoute: LaunchRoute = {
-        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
-        let hasCreatedRoutine = UserDefaults.standard.bool(forKey: "hasCreatedRoutine")
+    private var launchRoute: LaunchRoute {
+        let hasCompletedOnboarding = StreakManager.userScopedBool(forKey: "hasCompletedOnboarding")
+        let hasCreatedRoutine = StreakManager.userScopedBool(forKey: "hasCreatedRoutine")
         if !hasCompletedOnboarding {
             return .welcome
         }
@@ -17,7 +17,7 @@ struct UnstoppableApp: App {
             return .routineCreation
         }
         return .home
-    }()
+    }
 
     private struct RootLaunchView: View {
         let route: LaunchRoute
@@ -56,7 +56,7 @@ struct UnstoppableApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootLaunchView(route: Self.launchRoute)
+            RootLaunchView(route: launchRoute)
         }
     }
 }

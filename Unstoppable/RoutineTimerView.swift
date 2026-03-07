@@ -8,12 +8,12 @@ struct RoutineTimerView: View {
 
     let tasks: [RoutineTask]
     let hapticsEnabled: Bool
-    let onComplete: (Set<UUID>) -> Void
+    let onComplete: (Set<String>) -> Void
 
     @State private var currentIndex = 0
     @State private var remainingSeconds: Int = 0
     @State private var isPaused = false
-    @State private var completedIDs: Set<UUID> = []
+    @State private var completedKeys: Set<String> = []
     @State private var isFinished = false
     @State private var timer: Timer?
 
@@ -47,11 +47,11 @@ struct RoutineTimerView: View {
     var body: some View {
         if isFinished {
             CompletionView(
-                streak: completedIDs.count == tasks.count ? 1 : 0,
-                tasksCompleted: completedIDs.count,
+                streak: completedKeys.count == tasks.count ? 1 : 0,
+                tasksCompleted: completedKeys.count,
                 totalTasks: tasks.count
             ) {
-                onComplete(completedIDs)
+                onComplete(completedKeys)
                 dismiss()
             }
         } else {
@@ -70,7 +70,7 @@ struct RoutineTimerView: View {
                 endTimeText: endTimeText,
                 onClose: {
                     stopTimer()
-                    onComplete(completedIDs)
+                    onComplete(completedKeys)
                     dismiss()
                 }
             )
@@ -167,7 +167,7 @@ struct RoutineTimerView: View {
 
     private func completeCurrentTask() {
         if let task = currentTask {
-            completedIDs.insert(task.id)
+            completedKeys.insert(task.completionKey)
         }
 #if canImport(UIKit)
         if hapticsEnabled {

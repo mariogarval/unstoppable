@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct RoutineCreationView: View {
-    @AppStorage("hasCreatedRoutine") private var hasCreatedRoutine = false
     @State private var tasks: [PendingTask] = []
     @State private var routineTime: Date = Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var showingAddTask = false
@@ -350,7 +349,7 @@ struct RoutineCreationView: View {
         VStack(spacing: 10) {
             Button {
                 savePendingTasks()
-                hasCreatedRoutine = true
+                StreakManager.setUserScopedBool(true, forKey: "hasCreatedRoutine")
                 navigateHome = true
             } label: {
                 HStack(spacing: 10) {
@@ -399,7 +398,7 @@ struct RoutineCreationView: View {
             routineTime: Self.routineTimeFormatter.string(from: routineTime),
             tasks: tasks.map {
                 RoutineTaskPayload(
-                    id: UUID().uuidString,
+                    id: $0.id.uuidString,
                     title: $0.title,
                     icon: $0.icon,
                     duration: $0.duration,
