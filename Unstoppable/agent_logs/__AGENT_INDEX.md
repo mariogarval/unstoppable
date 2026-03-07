@@ -3,7 +3,29 @@
 **Last Updated**: 2026-03-07
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 14 markdown documents
+**Files**: 15 markdown documents
+
+---
+
+## March 7, 2026 - Do It Now Pending Tasks
+
+### `DO_IT_NOW_PENDING_TASKS_20260307.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-03-07 | **Status**: Complete
+**Branch**: `agentic-dev-v1`
+
+**Updated the Home routine timer handoff so `Do It Now` opens only unchecked tasks for the current day and disables itself once the day is already complete.**
+
+**Problem Solved**: Prevented already completed tasks from reappearing in the timer flow after the user taps `Do It Now`.
+
+**Key Results**:
+- Filtered the timer input in `Unstoppable/HomeView.swift` to pending tasks only.
+- Disabled the `Do It Now` button when no unchecked tasks remain.
+- Documented the updated flow in `README.md`.
+- Revalidated with `OPEN_SIMULATOR_APP=1 ./scripts/run_ios_sim.sh "iPhone 17 Pro"`.
+
+**Next Steps**: Manually verify the partially completed routine restore case and decide whether the all-done disabled state needs explicit copy.
+
+**Related**: `HOME_ROUTINE_STATE_ISOLATION_20260307.md` (same-day Home routine completion-state work)
 
 ---
 
@@ -303,6 +325,7 @@
 
 | Topic | Location |
 |-------|----------|
+| Do It Now pending-only timer flow | `DO_IT_NOW_PENDING_TASKS_20260307.md` |
 | Home routine state isolation across guest/auth | `HOME_ROUTINE_STATE_ISOLATION_20260307.md` |
 | Routine stats user scoping | `ROUTINE_STATS_USER_SCOPING_20260307.md` |
 | Home settings bootstrap sync (routine time + notifications) | `HOME_SETTINGS_BOOTSTRAP_SYNC_20260222.md` |

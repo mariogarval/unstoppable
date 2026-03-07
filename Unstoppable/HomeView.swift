@@ -196,6 +196,10 @@ private struct HomeTab: View {
         return Double(completedCount) / Double(tasks.count)
     }
 
+    private var pendingTasks: [RoutineTask] {
+        tasks.filter { !$0.isCompleted }
+    }
+
     private func loadPendingTasksIfNeeded() -> Bool {
         let storageKey = StreakManager.userScopedDefaultsKey("pendingRoutineTasks")
         guard let data = UserDefaults.standard.data(forKey: storageKey),
@@ -470,6 +474,8 @@ private struct HomeTab: View {
                             }
                             .padding(.horizontal, 20)
                             .padding(.bottom, 24)
+                            .disabled(pendingTasks.isEmpty)
+                            .opacity(pendingTasks.isEmpty ? 0.55 : 1)
                         }
                     }
                 }
@@ -531,7 +537,7 @@ private struct HomeTab: View {
         }
         .fullScreenCover(isPresented: $showingTimer) {
             RoutineTimerView(
-                tasks: tasks,
+                tasks: pendingTasks,
                 hapticsEnabled: settings.hapticsEnabled
             ) { completedKeys in
                 for i in tasks.indices {

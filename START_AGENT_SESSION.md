@@ -97,7 +97,8 @@ Read /Users/luisgalvez/Projects/unstoppable/AGENTS.md and /Users/luisgalvez/Proj
 
 Act as the lead agent.
 
-Goal: Implement this feature: [feature description]
+Goal: Implement this feature: 
+In the view after the "Do it now" button, only show the tasks that are unchecked for that day. If a task is already done, don't show it in the do it now flow.
 
 Scope:
 [modules, screens, or endpoints involved]

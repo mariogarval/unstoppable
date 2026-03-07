@@ -101,6 +101,7 @@ Connected endpoint calls in the app:
     - routine time change
     - timer completion
     - initial appear sync
+  - `Do It Now` launches only the tasks still unchecked for the current day; already completed tasks stay out of the timer flow.
 - `POST /v1/progress/daily`
   - Called from `Unstoppable/StreakManager.swift` (`syncTodayProgress`) whenever daily progress changes.
 - `POST /v1/payments/subscription/snapshot`
