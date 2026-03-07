@@ -17,12 +17,15 @@ enum RevenueCatPurchaseResult {
 
 enum RevenueCatManagerError: LocalizedError {
     case missingAPIKey
+    case invalidReleaseAPIKey
     case packageUnavailable
 
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
             return "RevenueCat API key is missing."
+        case .invalidReleaseAPIKey:
+            return "RevenueCat is configured with a test API key in a Release build. Use the live public SDK key before shipping TestFlight/App Store builds."
         case .packageUnavailable:
             return "Selected package is unavailable."
         }
@@ -59,6 +62,14 @@ final class RevenueCatManager: NSObject, ObservableObject {
             isConfigured = false
             return
         }
+
+#if !DEBUG
+        guard !apiKey.lowercased().hasPrefix("test_") else {
+            lastErrorMessage = RevenueCatManagerError.invalidReleaseAPIKey.localizedDescription
+            isConfigured = false
+            return
+        }
+#endif
 
 #if DEBUG
         Purchases.logLevel = .debug

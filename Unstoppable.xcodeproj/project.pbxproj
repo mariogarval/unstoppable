@@ -70,8 +70,10 @@
 		C0A200031111111111111111 /* AuthSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionManager.swift; sourceTree = "<group>"; };
 		C0A200041111111111111111 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		C0A200051111111111111111 /* RevenueCatManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatManager.swift; sourceTree = "<group>"; };
-		C0A200061111111111111111 /* RevenueCat.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = RevenueCat.xcconfig; sourceTree = "<group>"; };
-		C0A200071111111111111111 /* Secrets.local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.local.xcconfig.example; sourceTree = "<group>"; };
+		C0A200081111111111111111 /* RevenueCat.Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = RevenueCat.Debug.xcconfig; sourceTree = "<group>"; };
+		C0A200091111111111111111 /* RevenueCat.Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = RevenueCat.Release.xcconfig; sourceTree = "<group>"; };
+		C0A2000A1111111111111111 /* Secrets.debug.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.debug.local.xcconfig; sourceTree = "<group>"; };
+		C0A2000B1111111111111111 /* Secrets.release.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.release.local.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -184,8 +186,10 @@
 		C0A300041111111111111111 /* Config */ = {
 			isa = PBXGroup;
 			children = (
-				C0A200061111111111111111 /* RevenueCat.xcconfig */,
-				C0A200071111111111111111 /* Secrets.local.xcconfig.example */,
+				C0A200081111111111111111 /* RevenueCat.Debug.xcconfig */,
+				C0A200091111111111111111 /* RevenueCat.Release.xcconfig */,
+				C0A2000A1111111111111111 /* Secrets.debug.local.xcconfig */,
+				C0A2000B1111111111111111 /* Secrets.release.local.xcconfig */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -425,7 +429,7 @@
 		};
 		A71B2E0C2A0B1C0100F1A2B3 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C0A200061111111111111111 /* RevenueCat.xcconfig */;
+			baseConfigurationReference = C0A200081111111111111111 /* RevenueCat.Debug.xcconfig */;
 			buildSettings = {
 				API_BASE_URL = "https://unstoppable-api-1094359674860.us-central1.run.app";
 				API_DEV_USER_ID = "dev-user-001";
@@ -434,7 +438,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Unstoppable/Unstoppable.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";
 				DEVELOPMENT_TEAM = J8R7U58G33;
 				ENABLE_PREVIEWS = YES;
@@ -455,7 +459,7 @@
 		};
 		A71B2E0D2A0B1C0100F1A2B3 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C0A200061111111111111111 /* RevenueCat.xcconfig */;
+			baseConfigurationReference = C0A200091111111111111111 /* RevenueCat.Release.xcconfig */;
 			buildSettings = {
 				API_BASE_URL = "https://unstoppable-api-1094359674860.us-central1.run.app";
 				API_DEV_USER_ID = "";
@@ -464,7 +468,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Unstoppable/Unstoppable.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";
 				DEVELOPMENT_TEAM = J8R7U58G33;
 				ENABLE_PREVIEWS = YES;
