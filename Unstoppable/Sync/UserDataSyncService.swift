@@ -6,6 +6,7 @@ final class UserDataSyncService {
 
     private let apiClient: APIClient
     private let guestStore = GuestSyncStore()
+    private var authenticatedFirebaseUserID: String?
 
     init(apiClient: APIClient = .shared) {
         self.apiClient = apiClient
@@ -15,7 +16,17 @@ final class UserDataSyncService {
         await apiClient.setAuthMode(mode)
     }
 
+    func setAuthenticatedFirebaseUserID(_ userID: String?) {
+        let normalizedUserID = userID?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let normalizedUserID, !normalizedUserID.isEmpty {
+            authenticatedFirebaseUserID = normalizedUserID
+        } else {
+            authenticatedFirebaseUserID = nil
+        }
+    }
+
     func enterGuestMode() async {
+        authenticatedFirebaseUserID = nil
         await apiClient.setAuthMode(.none)
     }
 
@@ -171,7 +182,10 @@ final class UserDataSyncService {
     }()
 
     private var hasAuthenticatedFirebaseUser: Bool {
-        Auth.auth().currentUser != nil
+        if let authenticatedFirebaseUserID, !authenticatedFirebaseUserID.isEmpty {
+            return true
+        }
+        return Auth.auth().currentUser != nil
     }
 
     private func syncUserProfileRemote(_ request: UserProfileUpsertRequest) async throws -> APIAckResponse {

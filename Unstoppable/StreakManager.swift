@@ -14,6 +14,7 @@ struct DayRecord: Codable {
 final class StreakManager {
     static let shared = StreakManager()
     private static let guestUserID = "guest-local"
+    private static var storageScopeOverrideUserID: String?
 
     private(set) var currentStreak: Int = 0
     private(set) var longestStreak: Int = 0
@@ -127,6 +128,20 @@ final class StreakManager {
         manager.milestoneMessage = nil
         manager.didHydrateFromBootstrap = false
         manager.activeStorageScope = guestUserID
+    }
+
+    static func setAuthenticatedStorageScope(userID: String?) {
+        let normalizedUserID = userID?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let overrideUserID: String?
+        if let normalizedUserID, !normalizedUserID.isEmpty {
+            overrideUserID = normalizedUserID
+        } else {
+            overrideUserID = nil
+        }
+
+        guard storageScopeOverrideUserID != overrideUserID else { return }
+        storageScopeOverrideUserID = overrideUserID
+        shared.refreshStorageScopeIfNeeded()
     }
 
     // MARK: - Queries
@@ -261,12 +276,31 @@ final class StreakManager {
         save()
     }
 
-    func hydrateTodayCompletion(taskKeys: [String], completedTaskIds: [String]) {
+    func hydrateTodayCompletion(
+        date: String,
+        taskKeys: [String],
+        completedTaskIds: [String],
+        completed: Int,
+        total: Int
+    ) {
         refreshStorageScopeIfNeeded()
         let remoteCompleted = Set(completedTaskIds)
         let matchingTaskKeys = Set(taskKeys.filter { remoteCompleted.contains($0) })
         todayCompletedIDs.formUnion(remoteCompleted)
         todayCompletedIDs.formUnion(matchingTaskKeys)
+
+        let restoredCompleted = max(
+            completed,
+            matchingTaskKeys.count,
+            todayCompletedIDs.count
+        )
+        let restoredTotal = max(total, taskKeys.count, restoredCompleted)
+        let existingRecord = dailyRecords[date] ?? DayRecord(completed: 0, total: 0)
+        dailyRecords[date] = DayRecord(
+            completed: max(existingRecord.completed, restoredCompleted),
+            total: max(existingRecord.total, restoredTotal)
+        )
+        save()
     }
 
     private func checkMilestones() {
@@ -344,6 +378,10 @@ final class StreakManager {
     }
 
     private static func storageScopeUserID() -> String {
+        if let overrideUserID = storageScopeOverrideUserID?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !overrideUserID.isEmpty {
+            return overrideUserID
+        }
         let rawUserID = Auth.auth().currentUser?.uid.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return rawUserID.isEmpty ? guestUserID : rawUserID
     }
