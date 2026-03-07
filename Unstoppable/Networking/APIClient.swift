@@ -4,6 +4,7 @@ enum HTTPMethod: String {
     case get = "GET"
     case post = "POST"
     case put = "PUT"
+    case delete = "DELETE"
 }
 
 enum APIAuthMode: Sendable {
@@ -134,6 +135,10 @@ actor APIClient {
 
     func put<Body: Encodable, T: Decodable>(_ path: String, body: Body, as type: T.Type = T.self) async throws -> T {
         try await send(method: .put, path: path, body: body, as: type)
+    }
+
+    func delete<T: Decodable>(_ path: String, as type: T.Type = T.self) async throws -> T {
+        try await send(method: .delete, path: path, body: Optional<Int>.none, as: type)
     }
 
     private func send<Body: Encodable, T: Decodable>(

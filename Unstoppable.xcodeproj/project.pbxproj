@@ -38,6 +38,7 @@
 		C0A100071111111111111111 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C0A500021111111111111111 /* GoogleSignIn */; };
 		C0A100081111111111111111 /* RevenueCatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A200051111111111111111 /* RevenueCatManager.swift */; };
 		C0A100091111111111111111 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C0A500031111111111111111 /* RevenueCat */; };
+		C0A1000A1111111111111111 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A2000C1111111111111111 /* ProfileView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -74,6 +75,7 @@
 		C0A200091111111111111111 /* RevenueCat.Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = RevenueCat.Release.xcconfig; sourceTree = "<group>"; };
 		C0A2000A1111111111111111 /* Secrets.debug.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.debug.local.xcconfig; sourceTree = "<group>"; };
 		C0A2000B1111111111111111 /* Secrets.release.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.release.local.xcconfig; sourceTree = "<group>"; };
+		C0A2000C1111111111111111 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -141,6 +143,7 @@
 				C0A300031111111111111111 /* Payments */,
 				C0A300041111111111111111 /* Config */,
 				A71B2E292A0B1C0F00F1A2B3 /* HomeView.swift */,
+				C0A2000C1111111111111111 /* ProfileView.swift */,
 				A71B2E2D2A0B1C1100F1A2B3 /* RoutineTimerView.swift */,
 				A71B2E2F2A0B1C1200F1A2B3 /* StreakManager.swift */,
 				A71B2E042A0B1C0100F1A2B3 /* Assets.xcassets */,
@@ -300,6 +303,7 @@
 				A71B2E302A0B1C1200F1A2B3 /* StreakManager.swift in Sources */,
 				2B0135E12F3D3F1C007ED162 /* OnboardingUI.swift in Sources */,
 				A71B2E012A0B1C0000F1A2B3 /* UnstoppableApp.swift in Sources */,
+				C0A1000A1111111111111111 /* ProfileView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

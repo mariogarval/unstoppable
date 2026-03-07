@@ -387,6 +387,24 @@ def upsert_user_profile() -> tuple[Any, int]:
     return jsonify({"ok": True, "userId": user_id}), 200
 
 
+@app.delete("/v1/user/profile")
+def delete_user_profile() -> tuple[Any, int]:
+    user_id, err = _user_id_from_request()
+    if err:
+        return err
+
+    db = _get_db()
+    profile_ref = (
+        db.collection("users")
+        .document(user_id)
+        .collection("profile")
+        .document("self")
+    )
+    profile_ref.delete()
+
+    return jsonify({"ok": True, "userId": user_id}), 200
+
+
 @app.put("/v1/routines/current")
 def upsert_routine() -> tuple[Any, int]:
     user_id, err = _user_id_from_request()

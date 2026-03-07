@@ -142,6 +142,11 @@ final class UserDataSyncService {
         return try await apiClient.get("/v1/bootstrap", as: BootstrapResponse.self)
     }
 
+    @discardableResult
+    func resetAPIProfile() async throws -> APIAckResponse {
+        try await apiClient.delete("/v1/user/profile", as: APIAckResponse.self)
+    }
+
     func makeDailyProgressRequest(
         date: Date = Date(),
         completed: Int,

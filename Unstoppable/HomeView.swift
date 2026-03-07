@@ -1342,19 +1342,11 @@ private struct SettingsTab: View {
     @State private var isSigningOut = false
     @State private var signOutErrorMessage: String?
     @State private var showPaywallTestSheet = false
-    @State private var showResetLocalProfileConfirmation = false
     private let syncService = UserDataSyncService.shared
 
     private var isPaywallTestButtonEnabled: Bool {
         Self.infoBool(
             forKey: "REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON",
-            defaultValue: false
-        )
-    }
-
-    private var isResetLocalProfileTestButtonEnabled: Bool {
-        Self.infoBool(
-            forKey: "SHOW_SETTINGS_RESET_LOCAL_PROFILE_TEST_BUTTON",
             defaultValue: false
         )
     }
@@ -1379,17 +1371,16 @@ private struct SettingsTab: View {
                     Toggle("Haptics", isOn: $settings.hapticsEnabled)
                 }
 
-                if isPaywallTestButtonEnabled || isResetLocalProfileTestButtonEnabled {
+                Section(header: Text("Profile")) {
+                    NavigationLink("View Profile") {
+                        ProfileView()
+                    }
+                }
+
+                if isPaywallTestButtonEnabled {
                     Section(header: Text("Testing")) {
-                        if isPaywallTestButtonEnabled {
-                            Button("Open Paywall (Test)") {
-                                showPaywallTestSheet = true
-                            }
-                        }
-                        if isResetLocalProfileTestButtonEnabled {
-                            Button("Reset Local Profile (Test)", role: .destructive) {
-                                showResetLocalProfileConfirmation = true
-                            }
+                        Button("Open Paywall (Test)") {
+                            showPaywallTestSheet = true
                         }
                     }
                 }
@@ -1429,14 +1420,6 @@ private struct SettingsTab: View {
                 NavigationStack {
                     PaywallView()
                 }
-            }
-            .alert("Reset Local Profile?", isPresented: $showResetLocalProfileConfirmation) {
-                Button("Cancel", role: .cancel) { }
-                Button("Reset", role: .destructive) {
-                    resetLocalProfileForTesting()
-                }
-            } message: {
-                Text("This clears local onboarding/profile data from UserDefaults so you can re-test initial flows.")
             }
             .onChange(of: settings.notificationsEnabled) { _, enabled in
                 onNotificationsEdited()
@@ -1494,14 +1477,6 @@ private struct SettingsTab: View {
             }
         }
         return defaultValue
-    }
-
-    private func resetLocalProfileForTesting() {
-        StreakManager.removeUserScopedValue(forKey: "hasCompletedOnboarding")
-        StreakManager.removeUserScopedValue(forKey: "hasCreatedRoutine")
-        UserDefaults.standard.removeObject(forKey: "stayOnWelcomeAfterSignOut")
-        UserDefaults.standard.removeObject(forKey: "guest.sync.draft.state.v1")
-        StreakManager.clearLocalTestingState()
     }
 
     private func syncNotifications(enabled: Bool) async {

@@ -3,7 +3,30 @@
 **Last Updated**: 2026-03-07
 **Purpose**: Accelerate context learning for future sessions
 **Sort**: Descending by recency
-**Files**: 15 markdown documents
+**Files**: 16 markdown documents
+
+---
+
+## March 7, 2026 - Profile View Feature
+
+### `PROFILE_VIEW_FEATURE_20260307.md` ⭐ IMPLEMENTATION COMPLETE
+**Date**: 2026-03-07 | **Status**: Complete
+**Branch**: `agentic-dev-v1`
+
+**Added a Profile View accessible from Settings showing user profile info, with debug-only reset buttons scoped by auth state. Added DELETE /v1/user/profile backend endpoint.**
+
+**Problem Solved**: Users had no way to view their saved profile data within the app. Reset profile debug button lacked contextual placement.
+
+**Key Results**:
+- Created `ProfileView.swift` displaying profile data from bootstrap (guest and logged-in).
+- Added NavigationLink from Settings to Profile View.
+- Moved reset functionality: "Reset Local Profile" for guest only, "Reset API Profile" for logged-in only (both debug-gated).
+- Added `DELETE /v1/user/profile` endpoint to backend and deployed to Cloud Run.
+- Revalidated with `./scripts/run_ios_sim.sh "iPhone 17 Pro"`.
+
+**Next Steps**: Optionally add inline profile field editing from the profile view.
+
+**Related**: `PROFILE_COMPLETION_ROUTING_20260221.md` (bootstrap profile data pattern), `HOME_ROUTINE_STATE_ISOLATION_20260307.md` (user scoping)
 
 ---
 
@@ -325,6 +348,7 @@
 
 | Topic | Location |
 |-------|----------|
+| Profile view + API reset endpoint | `PROFILE_VIEW_FEATURE_20260307.md` |
 | Do It Now pending-only timer flow | `DO_IT_NOW_PENDING_TASKS_20260307.md` |
 | Home routine state isolation across guest/auth | `HOME_ROUTINE_STATE_ISOLATION_20260307.md` |
 | Routine stats user scoping | `ROUTINE_STATS_USER_SCOPING_20260307.md` |
