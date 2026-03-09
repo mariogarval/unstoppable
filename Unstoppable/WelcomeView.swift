@@ -140,6 +140,7 @@ struct WelcomeView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.9)
                         }
+                        .accessibilityIdentifier("welcome.skipSignupButton")
                         .buttonStyle(.plain)
                         .accessibilityLabel("Continue without signup")
                         .opacity(guestAppeared ? 1 : 0)
@@ -395,6 +396,13 @@ struct WelcomeView: View {
     @MainActor
     private func continueAsGuest() async {
         authErrorMessage = nil
+        if UITestSupport.shouldBypassGuestBootstrap {
+            await syncService.enterGuestMode()
+            StreakManager.setUserScopedBool(true, forKey: "hasCompletedOnboarding")
+            StreakManager.setUserScopedBool(true, forKey: "hasCreatedRoutine")
+            navigateHome = true
+            return
+        }
         await syncService.enterGuestMode()
         if let bootstrap = await bootstrapIfNeeded(force: true) {
             routeAuthenticatedUser(using: bootstrap)

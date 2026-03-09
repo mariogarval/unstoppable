@@ -39,7 +39,18 @@
 		C0A100081111111111111111 /* RevenueCatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A200051111111111111111 /* RevenueCatManager.swift */; };
 		C0A100091111111111111111 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C0A500031111111111111111 /* RevenueCat */; };
 		C0A1000A1111111111111111 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A2000C1111111111111111 /* ProfileView.swift */; };
+		C0B100001111111111111111 /* WelcomeToSignOutUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0B200021111111111111111 /* WelcomeToSignOutUITests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C0B600001111111111111111 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A71B2DF52A0B1C0000F1A2B3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A71B2DFC2A0B1C0000F1A2B3;
+			remoteInfo = Unstoppable;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingUI.swift; sourceTree = "<group>"; };
@@ -76,6 +87,9 @@
 		C0A2000A1111111111111111 /* Secrets.debug.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.debug.local.xcconfig; sourceTree = "<group>"; };
 		C0A2000B1111111111111111 /* Secrets.release.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.release.local.xcconfig; sourceTree = "<group>"; };
 		C0A2000C1111111111111111 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		C0B200001111111111111111 /* UnstoppableUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UnstoppableUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0B200011111111111111111 /* UnstoppableUITests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = UnstoppableUITests; sourceTree = "<group>"; };
+		C0B200021111111111111111 /* WelcomeToSignOutUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeToSignOutUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +101,13 @@
 				C0A100061111111111111111 /* FirebaseCore in Frameworks */,
 				C0A100071111111111111111 /* GoogleSignIn in Frameworks */,
 				C0A100091111111111111111 /* RevenueCat in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C0B300011111111111111111 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				A71B2DFF2A0B1C0000F1A2B3 /* Unstoppable */,
+				C0B200011111111111111111 /* UnstoppableUITests */,
 				A71B2DFE2A0B1C0000F1A2B3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -124,6 +146,7 @@
 			isa = PBXGroup;
 			children = (
 				A71B2DFD2A0B1C0000F1A2B3 /* Unstoppable.app */,
+				C0B200001111111111111111 /* UnstoppableUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -151,6 +174,14 @@
 				2BF67EBD2F4D0D63008E4042 /* RoutineCreationView 2.swift */,
 			);
 			path = Unstoppable;
+			sourceTree = "<group>";
+		};
+		C0B200011111111111111111 /* UnstoppableUITests */ = {
+			isa = PBXGroup;
+			children = (
+				C0B200021111111111111111 /* WelcomeToSignOutUITests.swift */,
+			);
+			path = UnstoppableUITests;
 			sourceTree = "<group>";
 		};
 		C0A300001111111111111111 /* Networking */ = {
@@ -223,6 +254,24 @@
 			productReference = A71B2DFD2A0B1C0000F1A2B3 /* Unstoppable.app */;
 			productType = "com.apple.product-type.application";
 		};
+		C0B300001111111111111111 /* UnstoppableUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0B500031111111111111111 /* Build configuration list for PBXNativeTarget "UnstoppableUITests" */;
+			buildPhases = (
+				C0B300021111111111111111 /* Sources */,
+				C0B300011111111111111111 /* Frameworks */,
+				C0B300031111111111111111 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C0B600011111111111111111 /* PBXTargetDependency */,
+			);
+			name = UnstoppableUITests;
+			productName = UnstoppableUITests;
+			productReference = C0B200001111111111111111 /* UnstoppableUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -235,6 +284,10 @@
 				TargetAttributes = {
 					A71B2DFC2A0B1C0000F1A2B3 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					C0B300001111111111111111 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = A71B2DFC2A0B1C0000F1A2B3;
 					};
 				};
 			};
@@ -257,6 +310,7 @@
 			projectRoot = "";
 			targets = (
 				A71B2DFC2A0B1C0000F1A2B3 /* Unstoppable */,
+				C0B300001111111111111111 /* UnstoppableUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -268,6 +322,13 @@
 			files = (
 				A71B2E052A0B1C0100F1A2B3 /* Assets.xcassets in Resources */,
 				C0A100041111111111111111 /* GoogleService-Info.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C0B300031111111111111111 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -307,7 +368,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0B300021111111111111111 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C0B100001111111111111111 /* WelcomeToSignOutUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C0B600011111111111111111 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A71B2DFC2A0B1C0000F1A2B3 /* Unstoppable */;
+			targetProxy = C0B600001111111111111111 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A71B2E092A0B1C0100F1A2B3 /* Debug */ = {
@@ -442,7 +519,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Unstoppable/Unstoppable.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";
 				DEVELOPMENT_TEAM = J8R7U58G33;
 				ENABLE_PREVIEWS = YES;
@@ -472,7 +549,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Unstoppable/Unstoppable.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "\"Unstoppable/Preview Content\"";
 				DEVELOPMENT_TEAM = J8R7U58G33;
 				ENABLE_PREVIEWS = YES;
@@ -488,6 +565,44 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C0B500011111111111111111 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J8R7U58G33;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.unstoppable.unstoppable.UITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Unstoppable;
+			};
+			name = Debug;
+		};
+		C0B500021111111111111111 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J8R7U58G33;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.unstoppable.unstoppable.UITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Unstoppable;
 			};
 			name = Release;
 		};
@@ -508,6 +623,15 @@
 			buildConfigurations = (
 				A71B2E0C2A0B1C0100F1A2B3 /* Debug */,
 				A71B2E0D2A0B1C0100F1A2B3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C0B500031111111111111111 /* Build configuration list for PBXNativeTarget "UnstoppableUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0B500011111111111111111 /* Debug */,
+				C0B500021111111111111111 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

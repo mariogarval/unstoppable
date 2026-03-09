@@ -1,5 +1,7 @@
 import SwiftUI
 import FirebaseCore
+import FirebaseAuth
+import GoogleSignIn
 
 @main
 struct UnstoppableApp: App {
@@ -51,6 +53,7 @@ struct UnstoppableApp: App {
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
         }
+        UITestSupport.configureIfNeeded()
         RevenueCatManager.shared.configureIfNeeded()
     }
 
@@ -58,5 +61,26 @@ struct UnstoppableApp: App {
         WindowGroup {
             RootLaunchView(route: launchRoute)
         }
+    }
+}
+
+enum UITestSupport {
+    private static let resetStateArgument = "UITEST_RESET_LOCAL_STATE"
+
+    static var shouldBypassGuestBootstrap: Bool {
+        ProcessInfo.processInfo.arguments.contains("UITEST_SKIP_SIGNUP_DIRECT_TO_HOME")
+    }
+
+    static func configureIfNeeded() {
+        guard ProcessInfo.processInfo.arguments.contains(resetStateArgument) else { return }
+
+        GIDSignIn.sharedInstance.signOut()
+        try? Auth.auth().signOut()
+        StreakManager.setAuthenticatedStorageScope(userID: nil)
+        StreakManager.removeUserScopedValue(forKey: "hasCompletedOnboarding")
+        StreakManager.removeUserScopedValue(forKey: "hasCreatedRoutine")
+        UserDefaults.standard.removeObject(forKey: "stayOnWelcomeAfterSignOut")
+        UserDefaults.standard.removeObject(forKey: "guest.sync.draft.state.v1")
+        StreakManager.clearLocalTestingState()
     }
 }

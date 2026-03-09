@@ -65,6 +65,7 @@ struct HomeView: View {
                     Image(systemName: "gearshape.fill")
                     Text("Settings")
                 }
+                .accessibilityIdentifier("home.settingsTab")
                 .tag(2)
         }
         .tint(.orange)
@@ -276,9 +277,15 @@ private struct HomeTab: View {
             if !remoteTasks.isEmpty {
                 tasks = remoteTasks
                 let completedTaskIds = progressCompletedTaskIds(from: bootstrap.progress.today)
+                let progressDate = progressDateString(from: bootstrap.progress.today)
+                let progressCompleted = progressInt("completed", from: bootstrap.progress.today)
+                let progressTotal = progressInt("total", from: bootstrap.progress.today)
                 streakManager.hydrateTodayCompletion(
+                    date: progressDate,
                     taskKeys: tasks.map(\.completionKey),
-                    completedTaskIds: completedTaskIds + tasks.filter(\.isCompleted).map(\.completionKey)
+                    completedTaskIds: completedTaskIds + tasks.filter(\.isCompleted).map(\.completionKey),
+                    completed: progressCompleted,
+                    total: progressTotal
                 )
                 for i in tasks.indices {
                     if streakManager.isCompleted(taskKey: tasks[i].completionKey) {
@@ -358,6 +365,27 @@ private struct HomeTab: View {
         }
     }
 
+    private func progressDateString(from progress: [String: JSONValue]) -> String {
+        if case .string(let value)? = progress["date"] {
+            return value
+        }
+        return Self.currentDateString()
+    }
+
+    private func progressInt(_ key: String, from progress: [String: JSONValue]) -> Int {
+        guard let value = progress[key] else { return 0 }
+        switch value {
+        case .int(let intValue):
+            return intValue
+        case .double(let doubleValue):
+            return Int(doubleValue)
+        case .string(let stringValue):
+            return Int(stringValue) ?? 0
+        default:
+            return 0
+        }
+    }
+
     private static func parseRoutineTime(_ value: String) -> Date? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
@@ -371,6 +399,15 @@ private struct HomeTab: View {
         formatter.dateFormat = "HH:mm"
         return formatter
     }()
+
+    private static func currentDateString() -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
+    }
 
     private static func deterministicTaskUUID(seed: String) -> UUID {
         let digest = SHA256.hash(data: Data(seed.utf8))
@@ -1400,6 +1437,7 @@ private struct SettingsTab: View {
                             Text("Sign Out")
                         }
                     }
+                    .accessibilityIdentifier("settings.signOutButton")
                     .disabled(isSigningOut)
                 }
             }
