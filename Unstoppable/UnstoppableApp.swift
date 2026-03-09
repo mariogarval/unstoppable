@@ -54,6 +54,7 @@ struct UnstoppableApp: App {
             FirebaseApp.configure()
         }
         UITestSupport.configureIfNeeded()
+        DebugStoreKitSessionManager.shared.configureIfNeeded()
         RevenueCatManager.shared.configureIfNeeded()
     }
 

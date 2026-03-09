@@ -55,10 +55,13 @@ This project is a SwiftUI iOS app with local-first state, Firebase + Apple/Googl
   - loads live offerings from RevenueCat when available
   - supports purchase + restore actions
   - keeps static plan cards as visual fallback, but primary CTA now retries offerings refresh instead of silently proceeding without a purchase package
-- Local purchase UX testing is available via StoreKit configuration:
+- Local debug purchase UX testing is available via StoreKit configuration:
   - file: `Unstoppable/StoreKit/UnstoppableLocal.storekit`
-  - scheme wiring: `Unstoppable.xcodeproj/xcshareddata/xcschemes/Unstoppable.xcscheme`
-  - to use it, run the app from Xcode with the `Unstoppable` scheme (the scheme launch action loads the local StoreKit file)
+  - when running a `DEBUG` build with the RevenueCat test public SDK key (`test_...`), the app starts a local `SKTestSession`
+  - that debug-only test session disables the StoreKit confirmation dialogs so local paywall purchases run through a cleaner in-app flow
+  - RevenueCat still shows its own `Test Purchase` sheet when the app uses a `test_...` key; that UI is part of RevenueCat's simulated store, not StoreKit
+  - to debug with the real Apple purchase flow, set `REVENUECAT_DEBUG_APPLE_API_KEY = appl_...` and `REVENUECAT_DEBUG_USE_APPLE_API_KEY = YES` in `Unstoppable/Config/Secrets.debug.local.xcconfig`
+  - TestFlight and release builds do not use that local StoreKit session
 - Optional Settings test entry for paywall:
   - feature flag key: `REVENUECAT_SHOW_SETTINGS_PAYWALL_TEST_BUTTON`
   - default: `NO`

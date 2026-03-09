@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		2B0135E12F3D3F1C007ED162 /* OnboardingUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */; };
 		2BF67EBE2F4D0D63008E4042 /* RoutineCreationView 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BF67EBD2F4D0D63008E4042 /* RoutineCreationView 2.swift */; };
+		6B100001A1B2C3D4E5F60001 /* UnstoppableLocal.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 6B100000A1B2C3D4E5F60001 /* UnstoppableLocal.storekit */; };
+		6B100003A1B2C3D4E5F60001 /* SimulatorStoreKitSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B100002A1B2C3D4E5F60001 /* SimulatorStoreKitSessionManager.swift */; };
 		A71B2E012A0B1C0000F1A2B3 /* UnstoppableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */; };
 		A71B2E032A0B1C0000F1A2B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71B2E022A0B1C0000F1A2B3 /* ContentView.swift */; };
 		A71B2E052A0B1C0100F1A2B3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A71B2E042A0B1C0100F1A2B3 /* Assets.xcassets */; };
@@ -55,6 +57,8 @@
 /* Begin PBXFileReference section */
 		2B0135E02F3D3F1C007ED162 /* OnboardingUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingUI.swift; sourceTree = "<group>"; };
 		2BF67EBD2F4D0D63008E4042 /* RoutineCreationView 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RoutineCreationView 2.swift"; sourceTree = "<group>"; };
+		6B100000A1B2C3D4E5F60001 /* UnstoppableLocal.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = UnstoppableLocal.storekit; sourceTree = "<group>"; };
+		6B100002A1B2C3D4E5F60001 /* SimulatorStoreKitSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorStoreKitSessionManager.swift; sourceTree = "<group>"; };
 		8D9E7C7F2F49630800D1C986 /* Unstoppable.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Unstoppable.entitlements; sourceTree = "<group>"; };
 		A71B2DFD2A0B1C0000F1A2B3 /* Unstoppable.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Unstoppable.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A71B2E002A0B1C0000F1A2B3 /* UnstoppableApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnstoppableApp.swift; sourceTree = "<group>"; };
@@ -164,6 +168,7 @@
 				C0A300011111111111111111 /* Sync */,
 				C0A300021111111111111111 /* Auth */,
 				C0A300031111111111111111 /* Payments */,
+				6B100004A1B2C3D4E5F60001 /* StoreKit */,
 				C0A300041111111111111111 /* Config */,
 				A71B2E292A0B1C0F00F1A2B3 /* HomeView.swift */,
 				C0A2000C1111111111111111 /* ProfileView.swift */,
@@ -213,8 +218,17 @@
 			isa = PBXGroup;
 			children = (
 				C0A200051111111111111111 /* RevenueCatManager.swift */,
+				6B100002A1B2C3D4E5F60001 /* SimulatorStoreKitSessionManager.swift */,
 			);
 			path = Payments;
+			sourceTree = "<group>";
+		};
+		6B100004A1B2C3D4E5F60001 /* StoreKit */ = {
+			isa = PBXGroup;
+			children = (
+				6B100000A1B2C3D4E5F60001 /* UnstoppableLocal.storekit */,
+			);
+			path = StoreKit;
 			sourceTree = "<group>";
 		};
 		C0A300041111111111111111 /* Config */ = {
@@ -320,6 +334,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6B100001A1B2C3D4E5F60001 /* UnstoppableLocal.storekit in Resources */,
 				A71B2E052A0B1C0100F1A2B3 /* Assets.xcassets in Resources */,
 				C0A100041111111111111111 /* GoogleService-Info.plist in Resources */,
 			);
@@ -344,6 +359,7 @@
 				C0A100021111111111111111 /* UserDataSyncService.swift in Sources */,
 				C0A100031111111111111111 /* AuthSessionManager.swift in Sources */,
 				C0A100081111111111111111 /* RevenueCatManager.swift in Sources */,
+				6B100003A1B2C3D4E5F60001 /* SimulatorStoreKitSessionManager.swift in Sources */,
 				A71B2E032A0B1C0000F1A2B3 /* ContentView.swift in Sources */,
 				A71B2E102A0B1C0200F1A2B3 /* WelcomeView.swift in Sources */,
 				A71B2E122A0B1C0300F1A2B3 /* NicknameView.swift in Sources */,

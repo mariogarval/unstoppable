@@ -44,6 +44,8 @@ final class RevenueCatManager: NSObject, ObservableObject {
 
     private let entitlementID = "premium"
     private let apiKeyInfoKey = "REVENUECAT_IOS_API_KEY"
+    private let debugAppleAPIKeyInfoKey = "REVENUECAT_DEBUG_APPLE_API_KEY"
+    private let debugUseAppleAPIKeyInfoKey = "REVENUECAT_DEBUG_USE_APPLE_API_KEY"
     private let backendSyncEnabledInfoKey = "REVENUECAT_ENABLE_BACKEND_SYNC"
     private let syncService = UserDataSyncService.shared
 
@@ -231,7 +233,29 @@ final class RevenueCatManager: NSObject, ObservableObject {
     }
 
     private func configuredAPIKey() -> String? {
-        let value = (Bundle.main.object(forInfoDictionaryKey: apiKeyInfoKey) as? String)?
+        if shouldUseDebugAppleAPIKey,
+           let appleDebugKey = infoString(forKey: debugAppleAPIKeyInfoKey),
+           !appleDebugKey.isEmpty {
+            return appleDebugKey
+        }
+
+        return infoString(forKey: apiKeyInfoKey)
+    }
+
+    private var shouldUseDebugAppleAPIKey: Bool {
+#if DEBUG
+        return infoBool(forKey: debugUseAppleAPIKeyInfoKey)
+#else
+        return false
+#endif
+    }
+
+    private func configuredBackendSyncEnabled() -> Bool {
+        infoBool(forKey: backendSyncEnabledInfoKey)
+    }
+
+    private func infoString(forKey key: String) -> String? {
+        let value = (Bundle.main.object(forInfoDictionaryKey: key) as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let value, !value.isEmpty else {
             return nil
@@ -239,8 +263,8 @@ final class RevenueCatManager: NSObject, ObservableObject {
         return value
     }
 
-    private func configuredBackendSyncEnabled() -> Bool {
-        let rawValue = Bundle.main.object(forInfoDictionaryKey: backendSyncEnabledInfoKey)
+    private func infoBool(forKey key: String) -> Bool {
+        let rawValue = Bundle.main.object(forInfoDictionaryKey: key)
 
         if let boolValue = rawValue as? Bool {
             return boolValue
